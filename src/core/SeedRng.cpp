@@ -58,7 +58,7 @@ uint32_t Rng::below (uint32_t n) noexcept
     uint32_t l = (uint32_t) m;
     if (l < n)
     {
-        const uint32_t t = (uint32_t) (-n) % n;
+        const uint32_t t = (0u - n) % n;
         while (l < t)
         {
             x = (uint32_t) (next() >> 32);

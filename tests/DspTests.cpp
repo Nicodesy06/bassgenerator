@@ -8,6 +8,7 @@ using namespace gfb;
 
 namespace
 {
+constexpr double kPi = 3.14159265358979323846;
 struct Note { int at; int len; int note; int vel; bool accent; bool legato; };
 
 std::vector<float> render (const SynthParams& p, const std::vector<Note>& notes, double sr, int totalSamples, int blockSize = 256)
@@ -54,8 +55,8 @@ double centroid (const std::vector<float>& x, double sr, size_t from, size_t len
         double re = 0, im = 0;
         for (size_t n = 0; n < len; ++n)
         {
-            const double w = 0.5 - 0.5 * std::cos (2 * M_PI * (double) n / (double) len);
-            const double ph = 2 * M_PI * (double) k * (double) n / (double) len;
+            const double w = 0.5 - 0.5 * std::cos (2 * kPi * (double) n / (double) len);
+            const double ph = 2 * kPi * (double) k * (double) n / (double) len;
             re += w * x[from + n] * std::cos (ph);
             im -= w * x[from + n] * std::sin (ph);
         }
