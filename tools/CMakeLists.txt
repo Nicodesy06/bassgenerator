@@ -1,0 +1,6 @@
+add_executable(pattern_diagnostics pattern_diagnostics.cpp)
+target_link_libraries(pattern_diagnostics PRIVATE gfb_core)
+
+add_executable(render_demo render_demo.cpp)
+target_link_libraries(render_demo PRIVATE gfb_core)
+target_include_directories(render_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

@@ -78,9 +78,9 @@ int NoteScheduler::process (const NoteSchedule& sched, const TransportState& t, 
     // Event inclusion is decided in the sample domain with a tiny epsilon so an
     // event landing exactly on a block boundary belongs to exactly one block.
     constexpr double eps = 1.0e-6;
-    auto firstOccurrence = [&] (double t) {
-        double k = std::ceil ((tick0 - t) / L - 1.0e-9);
-        double at = t + k * L;
+    auto firstOccurrence = [&] (double eventTick) {
+        double k = std::ceil ((tick0 - eventTick) / L - 1.0e-9);
+        double at = eventTick + k * L;
         if ((at - tick0) / tps < -eps) at += L;
         return at;
     };

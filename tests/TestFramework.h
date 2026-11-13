@@ -14,6 +14,8 @@ namespace gfbtest
 {
 struct Case { std::string suite, name; std::function<void()> fn; };
 inline std::vector<Case>& registry() { static std::vector<Case> r; return r; }
+/** Optional sub-process entry point: `gfb_juce_tests --worker ...` (multi-process tests). */
+inline std::function<int (int, char**)>& workerHook() { static std::function<int (int, char**)> h; return h; }
 inline int& failures() { static int f = 0; return f; }
 inline int& checks() { static int c = 0; return c; }
 struct Registrar { Registrar (const char* s, const char* n, std::function<void()> f) { registry().push_back ({ s, n, std::move (f) }); } };

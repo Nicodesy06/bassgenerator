@@ -5,6 +5,7 @@
 
 int main (int argc, char** argv)
 {
+    if (argc > 1 && std::strcmp (argv[1], "--worker") == 0 && gfbtest::workerHook()) return gfbtest::workerHook() (argc, argv);
     const char* filter = argc > 1 ? argv[1] : "";
     int ran = 0, failedCases = 0;
     const auto t0 = std::chrono::steady_clock::now();
