@@ -4,6 +4,7 @@
 // a playing transport, MIDI output, silence when stopped, state save/restore
 // into a fresh instance, multiple sample rates / block sizes, editor creation.
 // This is not a DAW; it is an automated VST3 host harness.
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 

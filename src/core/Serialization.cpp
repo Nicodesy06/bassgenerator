@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "core/Serialization.h"
 
 #include <charconv>
