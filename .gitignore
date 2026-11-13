@@ -7,3 +7,5 @@
 .vscode/
 CMakeUserPresets.json
 /reports/tmp/
+/reports/**/*.wav
+/reports/audition/

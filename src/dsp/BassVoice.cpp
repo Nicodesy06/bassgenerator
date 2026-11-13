@@ -138,7 +138,7 @@ void BassVoice::render (float* out, int n, const SynthParams& p) noexcept
         {
             const float oct = sEnvMod * fe * (4.5f + 2.5f * accAmt) + accAmt * ae * 2.0f;
             ladder.set (synthmap::cutoffHz (sCutoff) * 1.6f * std::exp2 (oct), sRes * (0.85f + 0.15f * accAmt));
-            voice = ladder.process (osc * 0.7f);
+            voice = ladder.process (osc * 0.7f) * 2.4f; // level-matched to the SUB engine (measured with render_demo)
         }
         else
         {
