@@ -110,7 +110,10 @@ int GrooveForgeProcessor::getCurrentProgram() { return currentProgram.load(); }
 void GrooveForgeProcessor::setCurrentProgram (int index)
 {
     if (index < 0 || index >= getNumPrograms()) return;
-    if (juce::MessageManager::existsAndIsCurrentThread()) { applyPreset (index); return; }
+    // Never apply synchronously: the VST3 wrapper can call this from inside
+    // process() (program-change parameter), and pushing 10 parameter edits back
+    // to the host from there is re-entrant. The index is visible immediately.
+    currentProgram = index;
     pendingProgram = index;
     triggerAsyncUpdate();
 }

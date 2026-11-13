@@ -45,6 +45,8 @@ jobs:
       - name: pluginval (strictness 10)
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
           Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval.zip
           Expand-Archive pluginval.zip -DestinationPath pluginval -Force
           $pv = Get-ChildItem -Recurse pluginval -Filter pluginval.exe | Select-Object -First 1
@@ -52,7 +54,8 @@ jobs:
           New-Item -ItemType Directory -Force artifacts/pluginval | Out-Null
           & $pv.FullName --strictness-level 10 --verbose --validate-in-process --output-dir artifacts/pluginval "build/windows-x64/GrooveForgeBass_artefacts/Release/VST3/GrooveForge Bass.vst3"
           $code = $LASTEXITCODE
-          Get-ChildItem artifacts/pluginval -File | ForEach-Object { Write-Host "==== $($_.Name)"; Get-Content $_.FullName -Tail 120 }
+          Write-Host "pluginval exit code: $code"
+          Get-ChildItem artifacts/pluginval -File -Recurse | ForEach-Object { Write-Host "==== $($_.Name)"; Get-Content $_.FullName -Tail 120 }
           if ($code -ne 0) { throw "pluginval failed with exit code $code" }
 
       - uses: actions/upload-artifact@v4

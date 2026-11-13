@@ -164,6 +164,12 @@ int main (int argc, char** argv)
         snapshot (*ed, snapDir, "editor_sub_1180x760_scale150", 1.5f);
         snapshot (*ed, snapDir, "editor_sub_1180x760_scale200", 2.0f);
 
+        // program change from inside processing must not apply synchronously
+        proc.setCurrentProgram (5);
+        check (proc.getCurrentProgram() == 5, "program index visible immediately");
+        pump (100);
+        check (proc.getStateSnapshot().presetIndex == 5, "program parameters applied asynchronously on the message thread");
+
         // pluginval-like "editor automation": parameters + programs changed from a
         // background thread while the editor is open and audio is processed.
         {
