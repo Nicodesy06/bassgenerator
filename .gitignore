@@ -1,0 +1,9 @@
+/build*/
+/out/
+/artifacts/
+/dist/
+*.user
+.vs/
+.vscode/
+CMakeUserPresets.json
+/reports/tmp/
