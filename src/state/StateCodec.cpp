@@ -66,8 +66,8 @@ std::optional<InstanceState> decode (const juce::ValueTree& t)
     const auto ui = t.getChildWithName (kUi);
     if (ui.isValid())
     {
-        s.editorWidth = juce::jlimit (900, 2600, (int) ui.getProperty (kW, 1180));
-        s.editorHeight = juce::jlimit (580, 1700, (int) ui.getProperty (kH, 760));
+        s.editorWidth = juce::jlimit (1100, 2600, (int) ui.getProperty (kW, 1180));
+        s.editorHeight = juce::jlimit (640, 1700, (int) ui.getProperty (kH, 760));
         s.drawerOpen = (bool) ui.getProperty (kDrawer, false);
     }
     return s;

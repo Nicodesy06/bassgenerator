@@ -106,9 +106,9 @@ void GeneratorPanel::paint (juce::Graphics& g)
 {
     g.setColour (colours::panel);
     g.fillRoundedRectangle (getLocalBounds().toFloat(), 8.0f);
-    auto logo = getLocalBounds().reduced (14, 10).removeFromLeft (150);
+    auto logo = getLocalBounds().reduced (14, 10).removeFromLeft (logoWidth - 8);
     g.setColour (colours::forge);
-    g.setFont (font (22.0f, true));
+    g.setFont (font (juce::jlimit (15.0f, 22.0f, (float) logoWidth * 0.125f), true));
     g.drawText ("GROOVEFORGE", logo.removeFromTop (logo.getHeight() / 2 + 6), juce::Justification::bottomLeft);
     g.setColour (colours::textDim);
     g.setFont (font (13.0f, true));
@@ -120,13 +120,14 @@ void GeneratorPanel::resized()
 {
     captions.clear();
     auto r = getLocalBounds().reduced (12, 8);
-    r.removeFromLeft (156);
+    logoWidth = juce::jlimit (128, 186, getWidth() / 8);
+    r.removeFromLeft (logoWidth);
     auto right = r.removeFromRight (juce::jmin (300, r.getWidth() / 4));
     diceBtn.setBounds (right.removeFromRight (right.getWidth() * 2 / 5).reduced (4, 10));
     generateBtn.setBounds (right.reduced (4, 6));
     const int lockW = 20;
     struct G { juce::String cap; float weight; };
-    const G groups[] = { { "Key", 1.0f }, { "Scale", 1.7f }, { "Family", 1.4f }, { "Feel", 1.5f }, { "Bars", 1.5f }, { "Octave", 1.2f } };
+    const G groups[] = { { "Key", 1.0f }, { "Scale", 1.7f }, { "Family", 1.55f }, { "Feel", 1.5f }, { "Bars", 1.45f }, { "Octave", 1.15f } };
     float total = 0;
     for (auto& g : groups) total += g.weight;
     const int gap = 10;
@@ -251,28 +252,30 @@ void ActionBar::resized()
 {
     auto r = getLocalBounds().reduced (8, 6);
     const int W = r.getWidth();
-    auto take = [&] (int w) { auto a = r.removeFromLeft (w); r.removeFromLeft (6); return a; };
-    const int seedW = juce::jlimit (150, 220, W / 7);
+    // proportional layout: seeds | history | actions, every element keeps a readable minimum
+    auto take = [&] (int w) { auto a = r.removeFromLeft (w); r.removeFromLeft (5); return a; };
+    const int seedW = juce::jlimit (128, 210, W * 15 / 100);
+    const int btnW = juce::jlimit (60, 96, W * 75 / 1000);
     style.setBounds (take (seedW));
-    lStyle.setBounds (take (18));
-    newStyle.setBounds (take (juce::jlimit (70, 96, W / 14)));
-    r.removeFromLeft (6);
+    lStyle.setBounds (take (16));
+    newStyle.setBounds (take (btnW + 6));
+    r.removeFromLeft (4);
     var.setBounds (take (seedW));
-    lVar.setBounds (take (18));
-    newVar.setBounds (take (juce::jlimit (64, 90, W / 15)));
-    r.removeFromLeft (8);
-    back.setBounds (take (28));
-    histLabel.setBounds (take (54));
-    fwd.setBounds (take (28));
-    favBtn.setBounds (take (58));
-    auto right = r;
-    const int bw = juce::jmax (62, right.getWidth() / 6 - 6);
-    auto takeR = [&] (int w) { auto a = right.removeFromRight (w); right.removeFromRight (6); return a; };
-    browserBtn.setBounds (takeR (bw));
-    midiOutBtn.setBounds (takeR (bw));
-    syncBtn.setBounds (takeR (bw));
-    previewBtn.setBounds (takeR (bw));
-    dragBtn.setBounds (takeR (bw));
-    exportBtn.setBounds (right);
+    lVar.setBounds (take (16));
+    newVar.setBounds (take (btnW));
+    r.removeFromLeft (6);
+    back.setBounds (take (26));
+    histLabel.setBounds (take (48));
+    fwd.setBounds (take (26));
+    favBtn.setBounds (take (54));
+    r.removeFromLeft (4);
+    juce::Component* right[] = { &exportBtn, &dragBtn, &previewBtn, &syncBtn, &midiOutBtn, &browserBtn };
+    const int n = 6, gap = 5;
+    const int each = (r.getWidth() - gap * (n - 1)) / n;
+    for (int i = 0; i < n; ++i)
+    {
+        right[i]->setBounds (r.removeFromLeft (each));
+        r.removeFromLeft (gap);
+    }
 }
 } // namespace gfb::ui

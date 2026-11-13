@@ -28,6 +28,7 @@ SynthPanel::SynthPanel (GrooveForgeProcessor& p) : proc (p)
         auto k = std::make_unique<Knob>();
         k->slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
         k->slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 72, 16);
+        k->slider.setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
         k->slider.setTooltip (juce::String (d.tip) + ". Double-click: default. Shift-drag: fine.");
         k->slider.setWantsKeyboardFocus (true);
         k->slider.setDoubleClickReturnValue (true, 0.0); // replaced by attachment default below

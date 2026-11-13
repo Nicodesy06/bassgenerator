@@ -38,7 +38,7 @@ GrooveForgeEditor::GrooveForgeEditor (GrooveForgeProcessor& p)
     drawerOpen = s.drawerOpen;
     browser.setVisible (drawerOpen);
     setResizable (true, true);
-    setResizeLimits (1000, 600, 2600, 1700);
+    setResizeLimits (1100, 640, 2600, 1700);
     setSize (s.editorWidth, s.editorHeight);
     setWantsKeyboardFocus (true);
     refreshFromProcessor();

@@ -51,3 +51,17 @@ if(GFB_BUILD_PLUGIN)
     add_test(NAME HostIntegration COMMAND gfb_host_test "${PROJECT_BINARY_DIR}/GrooveForgeBass_artefacts/$<CONFIG>/VST3/GrooveForge Bass.vst3")
     set_tests_properties(HostIntegration PROPERTIES TIMEOUT 300)
 endif()
+
+# ---------------------------------------------------------------------------
+# In-process GUI binding tests (real editor + real processor, no host)
+# ---------------------------------------------------------------------------
+if(GFB_BUILD_PLUGIN)
+    juce_add_console_app(gfb_ui_tests PRODUCT_NAME "gfb_ui_tests")
+    target_sources(gfb_ui_tests PRIVATE UiTests.cpp)
+    target_include_directories(gfb_ui_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    target_compile_definitions(gfb_ui_tests PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_USE_CURL=0 JUCE_WEB_BROWSER=0)
+    target_link_libraries(gfb_ui_tests PRIVATE GrooveForgeBass gfb_core juce::juce_audio_utils
+        juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+    add_test(NAME UiBindings COMMAND gfb_ui_tests)
+    set_tests_properties(UiBindings PROPERTIES TIMEOUT 300)
+endif()

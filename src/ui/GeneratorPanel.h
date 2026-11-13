@@ -34,6 +34,7 @@ private:
     LockButton lRoot, lScale, lFamily, lFeel, lBars, lOctave;
     juce::TextButton generateBtn { "GENERATE" }, diceBtn { "RANDOMISE" };
     std::vector<std::pair<juce::Rectangle<int>, juce::String>> captions;
+    int logoWidth = 160;
 };
 
 /** Seed row + workflow actions under the piano roll. */
@@ -56,8 +57,8 @@ private:
     juce::TextButton newStyle { "NEW STYLE" }, newVar { "NEW VAR" };
     juce::TextButton back { "<" }, fwd { ">" }, favBtn { "+ FAV" };
     juce::Label histLabel;
-    juce::TextButton exportBtn { "EXPORT MIDI" }, dragBtn { "DRAG MIDI" };
-    juce::TextButton previewBtn { "PREVIEW" }, syncBtn { "HOST SYNC" }, midiOutBtn { "MIDI OUT" };
+    juce::TextButton exportBtn { "EXPORT" }, dragBtn { "DRAG" };
+    juce::TextButton previewBtn { "PREVIEW" }, syncBtn { "SYNC" }, midiOutBtn { "MIDI OUT" };
     struct DragHandle : juce::MouseListener
     {
         std::function<void()> start;

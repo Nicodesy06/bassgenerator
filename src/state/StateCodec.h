@@ -27,7 +27,7 @@ struct InstanceState
     bool hostSync = true;
     bool midiOut = false;
     double previewBpm = 124.0;
-    int editorWidth = 1180, editorHeight = 760;
+    int editorWidth = 1220, editorHeight = 780;
     bool drawerOpen = false;
 };
 

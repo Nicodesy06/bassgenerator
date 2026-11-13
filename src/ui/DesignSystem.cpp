@@ -104,7 +104,7 @@ void ForgeLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& b, b
     g.setFont (getTextButtonFont (b, b.getHeight()));
     g.setColour (b.findColour (b.getToggleState() ? juce::TextButton::textColourOnId : juce::TextButton::textColourOffId)
                      .withMultipliedAlpha (b.isEnabled() ? 1.0f : 0.5f));
-    g.drawFittedText (b.getButtonText(), b.getLocalBounds().reduced (4, 2), juce::Justification::centred, 1, 0.8f);
+    g.drawFittedText (b.getButtonText(), b.getLocalBounds().reduced (3, 2), juce::Justification::centred, 1, 0.55f);
 }
 
 juce::Font ForgeLookAndFeel::getTextButtonFont (juce::TextButton&, int h) { return font (juce::jlimit (11.0f, 17.0f, (float) h * 0.42f), true); }
@@ -230,7 +230,7 @@ void Segmented::paint (juce::Graphics& g)
         }
         g.setColour (i == selected ? juce::Colours::black : colours::textDim);
         g.setFont (font (juce::jlimit (11.0f, 15.0f, r.getHeight() * 0.45f), true));
-        g.drawText (items[i], seg, juce::Justification::centred);
+        g.drawFittedText (items[i], seg.toNearestInt().reduced (1, 0), juce::Justification::centred, 1, 0.6f);
     }
 }
 

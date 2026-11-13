@@ -127,7 +127,8 @@ juce::String stateAttr (const juce::MemoryBlock& state, const juce::String& attr
 
 int main (int argc, char** argv)
 {
-    if (argc < 2) { std::printf ("usage: gfb_host_test <path to GrooveForge Bass.vst3>\n"); return 2; }
+    if (argc < 2) { std::printf ("usage: gfb_host_test <path to GrooveForge Bass.vst3> [--snapshot out.png width height scale]\n"); return 2; }
+    const bool snapshotMode = argc >= 7 && juce::String (argv[2]) == "--snapshot";
     juce::ScopedJuceInitialiser_GUI init;
     const juce::File bundle { juce::String (juce::CharPointer_UTF8 (argv[1])) };
     check (bundle.exists(), "VST3 bundle exists");
@@ -153,6 +154,26 @@ int main (int argc, char** argv)
 
     TestPlayHead ph;
     inst->setPlayHead (&ph);
+    if (snapshotMode)
+    {
+        // Renders the real editor (as hosted) to a PNG for visual QA.
+        inst->prepareToPlay (48000.0, 512);
+        run (*inst, ph, 48000.0, 512, 100);
+        std::unique_ptr<juce::AudioProcessorEditor> ed (inst->createEditorAndMakeActive());
+        const int w = juce::String (argv[4]).getIntValue(), h = juce::String (argv[5]).getIntValue();
+        const float scale = (float) juce::String (argv[6]).getDoubleValue();
+        ed->setSize (w, h);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (400);
+        const auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, scale);
+        juce::File out { juce::String (argv[3]) };
+        out.deleteFile();
+        juce::FileOutputStream os (out);
+        juce::PNGImageFormat png;
+        const bool ok = os.openedOk() && png.writeImageToStream (img, os);
+        std::printf ("snapshot %s: %dx%d @%.2f\n", ok ? "written" : "FAILED", img.getWidth(), img.getHeight(), scale);
+        ed.reset();
+        return ok ? 0 : 1;
+    }
     inst->enableAllBuses();
     inst->prepareToPlay (48000.0, 512);
     auto r = run (*inst, ph, 48000.0, 512, 600); // ~6.4 s at 124 BPM
