@@ -13,14 +13,14 @@ Environment of this work session: Linux x86_64 container (GCC 13, CMake 3.28, Ni
 | 4 GUI | done | src/ui, gfb_ui_tests, docs/images |
 | 5 MIDI workflow | done (DAW drag untested) | SMF writer + 2 independent readers, drag via JUCE external drag, VST3 MIDI out (harness) |
 | 6 Persistence + robustness | done | StateCodec, FavoritesStore, multi-thread/multi-process tests, host harness state tests |
-| 7 Polish + measurement | partial | pluginval only in CI; no DAW matrix; no listening test |
+| 7 Polish + measurement | partial | pluginval passes (out-of-process) in CI; in-process Editor Automation crash open; no DAW matrix; no listening test |
 
 ## Acceptance matrix
 
 | ID | Criterion | Status | Evidence |
 |---|---|---|---|
-| A01 | Windows x64 VST3 Release builds | see QUALITY_REPORT §1 (CI) | GitHub Actions job "Windows x64 (MSVC, VST3)" |
-| A02 | Loads in at least one real host | PARTIAL | Loads/plays/saves in JUCE's VST3 host implementation (gfb_host_test, Linux + Windows CI) and pluginval (CI); no DAW tested |
+| A01 | Windows x64 VST3 Release builds | PASS (CI) | run 43457282440, MSVC 19.44, bundle `GrooveForge Bass.vst3/Contents/x86_64-win/` |
+| A02 | Loads in at least one real host | PARTIAL | Loads/plays/saves in JUCE's VST3 host implementation (gfb_host_test, Linux + Windows CI) and passes pluginval 1.0.4 strictness 10 (Windows CI, out-of-process); no DAW tested |
 | A03 | Two audible SUB/ACID families | PASS | Dsp.SubAndAcidAreSpectrallyDistinct (centroid 206 Hz vs 477 Hz), demos |
 | A04 | 8 controls alter audio | PASS | Dsp.EveryMacroHasMeasurableEffect (+ Shape) |
 | A05 | Root 12, scales 7, family 2, feel 6+Random, bars 1/2/4/8, octave ±3 | PASS | Generator.AllOptionCombinationsValidAndInScale, OctaveTransposition |
@@ -36,12 +36,13 @@ Environment of this work session: Linux x86_64 container (GCC 13, CMake 3.28, Ni
 | A15 | No glitches/stuck notes in stress | PARTIAL | Scheduler stress, 10-min drift, zero allocations, benchmark ≈1–2 % of one core; no hardware xrun test |
 | A16 | Diagnostics distinguish feels/families | PASS | Metrics.* tests, reports/diagnostics_summary.md |
 | A17 | Polished, resizable GUI | PASS (visual check by snapshots) / UNTESTED at real Windows DPI | docs/images, UiBindings resize/scale snapshots |
-| A18 | Automated tests pass, report truthful | see QUALITY_REPORT | 18 CTest entries |
-| A19 | Scripts + release ZIP | see QUALITY_REPORT §1 | scripts/*.ps1, CI artifact |
+| A18 | Automated tests pass, report truthful | PASS | 18/18 CTest on Linux and Windows CI; pluginval in-process issue documented |
+| A19 | Scripts + release ZIP | PASS (CI) | scripts/*.ps1; ZIP + .sha256 produced by package-windows.ps1 in CI (artifact GrooveForgeBass-win64) |
 | A20 | Originality + licences documented | PASS | LICENSE-THIRD-PARTY.md |
 
 ## Next actions
 
+0. Investigate the pluginval `--validate-in-process` crash in Editor Automation on Windows (run it locally on Windows under a debugger).
 1. Install the CI ZIP on a Windows machine; run the manual checklist in TEST_PLAN.md (REAPER first), fill DAW_COMPATIBILITY.md.
 2. Run the blind listening protocol (48 clips) and tune corpus weights/evaluator from the ratings.
 3. Decide the JUCE licence (AGPLv3 open-source release vs commercial licence).

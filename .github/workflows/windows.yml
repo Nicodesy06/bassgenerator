@@ -67,6 +67,16 @@ jobs:
           "%PV%" --strictness-level 10 --skip-gui-tests --verbose --output-dir artifacts\pluginval-nogui
           "build\windows-x64\GrooveForgeBass_artefacts\Release\VST3\GrooveForge Bass.vst3"
 
+      # Informational (does not fail the job): in-process mode crashed in "Editor Automation"
+      # on earlier runs while out-of-process mode passes; kept visible until resolved.
+      - name: pluginval strictness 10 (in-process, informational)
+        id: pv_inproc
+        continue-on-error: true
+        shell: cmd
+        run: >
+          "%PV%" --strictness-level 10 --validate-in-process --output-dir artifacts\pluginval-inprocess
+          "build\windows-x64\GrooveForgeBass_artefacts\Release\VST3\GrooveForge Bass.vst3"
+
       - name: pluginval logs
         if: always()
         shell: pwsh

@@ -4,13 +4,13 @@ Legend: **validated** = observed working in that host; **harness** = verified by
 
 | Feature | JUCE VST3 harness (Linux) | JUCE VST3 harness (Windows CI) | pluginval (Windows CI) | REAPER | Ableton Live | FL Studio | Bitwig |
 |---|---|---|---|---|---|---|---|
-| Discovery as instrument / load | harness | see QUALITY_REPORT | see QUALITY_REPORT | not tested | not tested | not tested | not tested |
-| Audio follows host transport | harness | see QUALITY_REPORT | – | not tested | not tested | not tested | not tested |
+| Discovery as instrument / load | harness | harness (PASS) | PASS (out-of-process); in-process FAIL in Editor Automation | not tested | not tested | not tested | not tested |
+| Audio follows host transport | harness | harness (PASS) | – | not tested | not tested | not tested | not tested |
 | Preview while stopped | in-process UI test | in-process UI test | – | not tested | not tested | not tested | not tested |
-| State save / reload | harness | see QUALITY_REPORT | – | not tested | not tested | not tested | not tested |
+| State save / reload | harness | harness (PASS) | PASS (state + restoration tests) | not tested | not tested | not tested | not tested |
 | Export MIDI (file dialog) | unit tests (file content) | unit tests | – | not tested | not tested | not tested | not tested |
 | External drag of .mid | not testable headless | not testable headless | – | not tested | not tested | not tested | not tested |
-| VST3 MIDI output | harness (20/20 note on/off) | see QUALITY_REPORT | – | not tested | not tested | not tested (FL generally does not route VST3 instrument MIDI out) | not tested |
+| VST3 MIDI output | harness (20/20 note on/off) | harness (PASS) | – | not tested | not tested | not tested (FL generally does not route VST3 instrument MIDI out) | not tested |
 | HiDPI 125/150/200 % | snapshot scale 1.5×/2× | – | – | not tested | not tested | not tested | not tested |
 
 Notes

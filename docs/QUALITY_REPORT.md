@@ -8,13 +8,15 @@ Status values: PASS (measured/observed), FAIL, PARTIAL, UNTESTED. Numbers below 
 |---|---|---|---|
 | Linux VST3 + Standalone + tests (Release, GCC 13, JUCE 9.0.5) | dev container | PASS | `build/GrooveForgeBass_artefacts/Release/VST3/GrooveForge Bass.vst3` |
 | Linux job | GitHub Actions ubuntu-24.04 | PASS (build + 18/18 CTest) | run 43443851332, job "Linux (GCC, VST3 + tests)" |
-| **Windows x64 VST3 + Standalone (MSVC, VS 2022)** | GitHub Actions windows-2022 | WINDOWS_CI_STATUS | WINDOWS_CI_EVIDENCE |
-| pluginval strictness 10 | GitHub Actions windows-2022 | PLUGINVAL_STATUS | PLUGINVAL_EVIDENCE |
+| **Windows x64 VST3 + Standalone (MSVC 19.44, VS 2022)** | GitHub Actions windows-2022 | **PASS**: build, 18/18 CTest (incl. golden hashes from Linux ⇒ cross-toolchain determinism, VST3 host harness, GUI bindings), diagnostics, package | run 43457282440 (https://github.com/Nicodesy06/bassgenerator/actions/runs/43457282440); ZIP `dist/GrooveForgeBass-0.1.0-win64.zip`, SHA-256 `ddf88e7639b20078cf10438a1d907008c48273679bd5df5c8bb40951e7575659`, uploaded as artifact `GrooveForgeBass-win64` |
+| pluginval 1.0.4 strictness 10, default (out-of-process), all tests incl. GUI/Editor Automation | GitHub Actions windows-2022 | **PASS** (SUCCESS, 14 s) | same run, step "pluginval strictness 10 (full, out-of-process)" |
+| pluginval 1.0.4 strictness 10 `--skip-gui-tests` | GitHub Actions windows-2022 | **PASS** | same run |
+| pluginval 1.0.4 strictness 10 `--validate-in-process` | GitHub Actions windows-2022 | **FAIL (open issue)**: process exits during "Editor Automation" in runs 43450522799 and 43453343461 (before/after deferring program changes); all earlier categories passed. Not reproducible on Linux: the equivalent stress through the real VST3 wrapper is clean under AddressSanitizer (118 262 blocks). Now tracked as an informational CI step. | runs 4–5 |
 | pluginval locally | dev container | not run (downloading and executing the prebuilt binary was not permitted in this environment) | – |
 
 ## 2. Automated tests (Linux, this session)
 
-18/18 CTest entries passed (`reports/ctest_linux.txt`); `gfb_tests`: 48 cases, 3 698 620 checks, 0 failures.
+18/18 CTest entries passed on Linux (`reports/ctest_linux.txt`) and on Windows CI; `gfb_tests`: 48 cases, 3 698 620 checks, 0 failures.
 
 ## 3. Generator statistics
 
@@ -87,6 +89,6 @@ All PASS in automated tests: exact project round trip (also through the real VST
 - No DAW validation (REAPER/Ableton/FL/Bitwig): all UNTESTED.
 - External drag into a DAW: implemented, UNTESTED.
 - No producer listening test yet.
-- pluginval not run locally.
+- pluginval not run locally (only in CI); in-process mode still fails in Editor Automation on Windows (see §1).
 - JUCE licence decision pending (AGPLv3 vs commercial).
 - No pitch-bend slide export mode; no microtiming panel; no manual note editing.
