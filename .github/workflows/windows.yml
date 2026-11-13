@@ -42,21 +42,35 @@ jobs:
 
       # pluginval (Tracktion, GPLv3) is downloaded from its official GitHub release page
       # only inside CI to validate the built bundle; it is not shipped with the plugin.
-      - name: pluginval (strictness 10)
+      - name: Download pluginval
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Continue'
-          $PSNativeCommandUseErrorActionPreference = $false
           Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval.zip
           Expand-Archive pluginval.zip -DestinationPath pluginval -Force
-          $pv = Get-ChildItem -Recurse pluginval -Filter pluginval.exe | Select-Object -First 1
-          & $pv.FullName --version
-          New-Item -ItemType Directory -Force artifacts/pluginval | Out-Null
-          & $pv.FullName --strictness-level 10 --verbose --validate-in-process --output-dir artifacts/pluginval "build/windows-x64/GrooveForgeBass_artefacts/Release/VST3/GrooveForge Bass.vst3"
-          $code = $LASTEXITCODE
-          Write-Host "pluginval exit code: $code"
-          Get-ChildItem artifacts/pluginval -File -Recurse | ForEach-Object { Write-Host "==== $($_.Name)"; Get-Content $_.FullName -Tail 120 }
-          if ($code -ne 0) { throw "pluginval failed with exit code $code" }
+          $pv = (Get-ChildItem -Recurse pluginval -Filter pluginval.exe | Select-Object -First 1).FullName
+          & $pv --version
+          "PV=$pv" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: pluginval strictness 10 (full, out-of-process)
+        id: pv_full
+        continue-on-error: true
+        shell: cmd
+        run: >
+          "%PV%" --strictness-level 10 --verbose --output-dir artifacts\pluginval-full
+          "build\windows-x64\GrooveForgeBass_artefacts\Release\VST3\GrooveForge Bass.vst3"
+
+      - name: pluginval strictness 10 (non-GUI tests)
+        id: pv_nogui
+        continue-on-error: true
+        shell: cmd
+        run: >
+          "%PV%" --strictness-level 10 --skip-gui-tests --verbose --output-dir artifacts\pluginval-nogui
+          "build\windows-x64\GrooveForgeBass_artefacts\Release\VST3\GrooveForge Bass.vst3"
+
+      - name: pluginval logs
+        if: always()
+        shell: pwsh
+        run: Get-ChildItem artifacts -Recurse -Filter *.txt | Where-Object { $_.FullName -like '*pluginval*' } | ForEach-Object { Write-Host "==== $($_.FullName)"; Get-Content $_.FullName -Tail 80 }
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -68,6 +82,13 @@ jobs:
             artifacts/
             build/windows-x64/Testing/Temporary/LastTest.log
           if-no-files-found: warn
+
+      - name: Fail job if pluginval failed
+        if: steps.pv_full.outcome == 'failure' || steps.pv_nogui.outcome == 'failure'
+        shell: pwsh
+        run: |
+          Write-Host "pluginval full: ${{ steps.pv_full.outcome }}  non-GUI: ${{ steps.pv_nogui.outcome }}"
+          exit 1
 
   linux:
     name: Linux (GCC, VST3 + tests)

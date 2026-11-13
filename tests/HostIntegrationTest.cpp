@@ -6,7 +6,9 @@
 // This is not a DAW; it is an automated VST3 host harness.
 #include <algorithm>
 #include <cmath>
+#include <atomic>
 #include <cstdio>
+#include <thread>
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -247,7 +249,39 @@ int main (int argc, char** argv)
     check (allFinite, "finite & bounded at 44.1/48/96 kHz x 32..1024 samples");
     check (allAudible, "audible at all tested rates/block sizes");
 
+    // pluginval-style "Editor Automation" through the real VST3 wrapper:
+    // editor open on the message thread, a worker thread sets every parameter
+    // (incl. Program/Bypass) and processes audio.
+    {
+        inst->releaseResources();
+        inst->prepareToPlay (44100.0, 64);
+        std::unique_ptr<juce::AudioProcessorEditor> ed (inst->createEditorAndMakeActive());
+        std::atomic<bool> stop { false };
+        std::atomic<int> blocks { 0 };
+        std::thread worker ([&] {
+            juce::Random r (3);
+            juce::AudioBuffer<float> b (2, 64);
+            juce::MidiBuffer mb;
+            while (! stop.load())
+            {
+                for (auto* prm : inst->getParameters()) prm->setValue (r.nextFloat());
+                b.clear();
+                inst->processBlock (b, mb);
+                ++blocks;
+            }
+        });
+        for (int i = 0; i < 30; ++i) juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+        stop = true;
+        worker.join();
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+        if (ed != nullptr) { inst->editorBeingDeleted (ed.get()); ed.reset(); }
+        std::printf ("    editor automation: %d blocks\n", blocks.load());
+        check (blocks.load() > 100, "editor open + background parameter/program automation through VST3 wrapper");
+    }
+
     // editor lifecycle while "transport running"
+    inst->releaseResources();
+    inst->prepareToPlay (96000.0, 1024);
     {
         std::unique_ptr<juce::AudioProcessorEditor> ed (inst->createEditorAndMakeActive());
         check (ed != nullptr, "editor created");
