@@ -2,7 +2,9 @@
 // Verifies that controls change engine state (not just visuals), exercises
 // resize limits / scale factors, and writes PNG snapshots for visual QA.
 //   gfb_ui_tests [snapshot-dir]
+#include <atomic>
 #include <cstdio>
+#include <thread>
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -161,6 +163,29 @@ int main (int argc, char** argv)
         snapshot (*ed, snapDir, "editor_sub_1180x760");
         snapshot (*ed, snapDir, "editor_sub_1180x760_scale150", 1.5f);
         snapshot (*ed, snapDir, "editor_sub_1180x760_scale200", 2.0f);
+
+        // pluginval-like "editor automation": parameters + programs changed from a
+        // background thread while the editor is open and audio is processed.
+        {
+            std::atomic<bool> stop { false };
+            std::thread automator ([&] {
+                juce::Random r (7);
+                int i = 0;
+                while (! stop.load())
+                {
+                    for (auto* prm : proc.getParameters()) prm->setValueNotifyingHost (r.nextFloat());
+                    if (++i % 7 == 0) proc.setCurrentProgram (r.nextInt (8));
+                    juce::AudioBuffer<float> b (2, 64);
+                    juce::MidiBuffer m;
+                    proc.processBlock (b, m);
+                }
+            });
+            for (int i = 0; i < 40; ++i) { pump (25); ed->repaint(); }
+            stop = true;
+            automator.join();
+            pump (100);
+            check (true, "editor survives background parameter/program automation");
+        }
 
         // destroy/recreate editor repeatedly while audio runs
         int reopened = 0;

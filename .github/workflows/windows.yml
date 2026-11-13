@@ -36,6 +36,10 @@ jobs:
           ./build/windows-x64/tools/Release/pattern_diagnostics.exe --count 200 --out artifacts/reports
           ./build/windows-x64/tools/Release/render_demo.exe --out artifacts/reports/demos
 
+      - name: Package
+        shell: pwsh
+        run: ./scripts/package-windows.ps1
+
       # pluginval (Tracktion, GPLv3) is downloaded from its official GitHub release page
       # only inside CI to validate the built bundle; it is not shipped with the plugin.
       - name: pluginval (strictness 10)
@@ -46,12 +50,10 @@ jobs:
           $pv = Get-ChildItem -Recurse pluginval -Filter pluginval.exe | Select-Object -First 1
           & $pv.FullName --version
           New-Item -ItemType Directory -Force artifacts/pluginval | Out-Null
-          & $pv.FullName --strictness-level 10 --validate-in-process --output-dir artifacts/pluginval "build/windows-x64/GrooveForgeBass_artefacts/Release/VST3/GrooveForge Bass.vst3"
-          if ($LASTEXITCODE -ne 0) { throw "pluginval failed with exit code $LASTEXITCODE" }
-
-      - name: Package
-        shell: pwsh
-        run: ./scripts/package-windows.ps1
+          & $pv.FullName --strictness-level 10 --verbose --validate-in-process --output-dir artifacts/pluginval "build/windows-x64/GrooveForgeBass_artefacts/Release/VST3/GrooveForge Bass.vst3"
+          $code = $LASTEXITCODE
+          Get-ChildItem artifacts/pluginval -File | ForEach-Object { Write-Host "==== $($_.Name)"; Get-Content $_.FullName -Tail 120 }
+          if ($code -ne 0) { throw "pluginval failed with exit code $code" }
 
       - uses: actions/upload-artifact@v4
         if: always()

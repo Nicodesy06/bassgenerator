@@ -33,7 +33,7 @@ private:
     std::mutex writerMutex;
 };
 
-class GrooveForgeProcessor final : public juce::AudioProcessor
+class GrooveForgeProcessor final : public juce::AudioProcessor, private juce::AsyncUpdater
 {
 public:
     GrooveForgeProcessor();
@@ -106,6 +106,8 @@ private:
     void setPatternLocked (const Pattern& p, bool pushHistory);
     void publishLocked();
     void bump() { stateVersion.fetch_add (1); }
+    void handleAsyncUpdate() override;
+    std::atomic<int> pendingProgram { -1 }, currentProgram { 1 };
 
     mutable std::mutex stateMutex;
     state::InstanceState st;

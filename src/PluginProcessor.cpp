@@ -86,7 +86,7 @@ GrooveForgeProcessor::GrooveForgeProcessor()
     setPatternLocked (generatePattern (st.settings), true);
 }
 
-GrooveForgeProcessor::~GrooveForgeProcessor() = default;
+GrooveForgeProcessor::~GrooveForgeProcessor() { cancelPendingUpdate(); }
 
 bool GrooveForgeProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
@@ -103,8 +103,22 @@ void GrooveForgeProcessor::prepareToPlay (double sr, int block)
     setLatencySamples (15); // 2x oversampled drive FIR (up + down half-band, 31 taps each)
 }
 
-int GrooveForgeProcessor::getCurrentProgram() { std::lock_guard<std::mutex> g (stateMutex); return st.presetIndex; }
-void GrooveForgeProcessor::setCurrentProgram (int index) { applyPreset (index); }
+// Hosts / the VST3 wrapper may call these from the audio thread: no locks there,
+// and preset application (which notifies the host of parameter changes) is
+// always performed on the message thread.
+int GrooveForgeProcessor::getCurrentProgram() { return currentProgram.load(); }
+void GrooveForgeProcessor::setCurrentProgram (int index)
+{
+    if (index < 0 || index >= getNumPrograms()) return;
+    if (juce::MessageManager::existsAndIsCurrentThread()) { applyPreset (index); return; }
+    pendingProgram = index;
+    triggerAsyncUpdate();
+}
+void GrooveForgeProcessor::handleAsyncUpdate()
+{
+    const int p = pendingProgram.exchange (-1);
+    if (p >= 0) applyPreset (p);
+}
 const juce::String GrooveForgeProcessor::getProgramName (int index)
 {
     const auto p = factoryPresets();
@@ -325,6 +339,7 @@ void GrooveForgeProcessor::applyPreset (int index)
     set ("accent", p.accent); set ("drive", p.drive); set ("glide", p.glide); set ("shape", p.shape);
     set ("engine", p.engine == SynthEngine::Acid ? 1.0f : 0.0f);
     { std::lock_guard<std::mutex> g (stateMutex); st.presetIndex = index; }
+    currentProgram = index;
     bump();
 }
 
@@ -353,6 +368,7 @@ void GrooveForgeProcessor::resetToDefaults()
     for (auto* id : kParamIds)
         if (auto* p = apvts.getParameter (id)) p->setValueNotifyingHost (p->getDefaultValue());
     { std::lock_guard<std::mutex> g (stateMutex); st.presetIndex = 1; }
+    currentProgram = 1;
     hostSyncOn = true;
     midiOutOn = false;
     bump();
@@ -404,6 +420,7 @@ void GrooveForgeProcessor::setStateInformation (const void* data, int size)
         else
             st.pattern.settings = pattern.settings;
         st.settings = st.pattern.settings;
+        currentProgram = s->presetIndex;
         hostSyncOn = s->hostSync;
         midiOutOn = s->midiOut;
         previewBpm = s->previewBpm;
