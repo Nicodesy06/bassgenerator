@@ -14,6 +14,7 @@ Legend: **validated** = observed working in that host; **harness** = verified by
 | HiDPI 125/150/200 % | snapshot scale 1.5×/2× | – | – | not tested | not tested | not tested | not tested |
 
 Notes
+- macOS: the AU passes Apple's `auval` and the VST3 passes the JUCE host harness on the GitHub macOS runner (installed from the release .pkg). Logic Pro / GarageBand themselves are **not tested**.
 - No DAW was available in the development environment (Linux container). Everything in DAW columns is **not tested**.
 - External drag uses `juce::DragAndDropContainer::performExternalDragDropOfFiles` with a pre-written file (`canMoveFiles=false`). If a host's window does not accept the drag, the UI shows an error and EXPORT remains available.
 - MIDI output routing from an *instrument* is host-specific. The `.mid` export/drag path is the guaranteed workflow.

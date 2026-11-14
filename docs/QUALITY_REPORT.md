@@ -12,6 +12,8 @@ Status values: PASS (measured/observed), FAIL, PARTIAL, UNTESTED. Numbers below 
 | pluginval 1.0.4 strictness 10, default (out-of-process), all tests incl. GUI/Editor Automation | GitHub Actions windows-2022 | **PASS** (SUCCESS, 14 s) | same run, step "pluginval strictness 10 (full, out-of-process)" |
 | pluginval 1.0.4 strictness 10 `--skip-gui-tests` | GitHub Actions windows-2022 | **PASS** | same run |
 | pluginval 1.0.4 strictness 10 `--validate-in-process` | GitHub Actions windows-2022 | **FAIL (open issue)**: process exits during "Editor Automation" in runs 43450522799 and 43453343461 (before/after deferring program changes); all earlier categories passed. Not reproducible on Linux: the equivalent stress through the real VST3 wrapper is clean under AddressSanitizer (118 262 blocks). Now tracked as an informational CI step. | runs 4–5 |
+| **macOS universal (arm64 + x86_64) VST3 + AU + Standalone (Apple Clang)** | GitHub Actions macos-latest | **PASS**: build, 18/18 CTest, golden hashes on arm64 and on the x86_64 slice (Rosetta), DMG + .pkg built, package installed on the runner, **auval: AU VALIDATION SUCCEEDED**, installed VST3 passes the host harness | release workflow run 43547228796 |
+| **Windows installer (Inno Setup .exe)** | GitHub Actions windows-2022 | **PASS**: silent install (all users), installed VST3 passes the host harness, silent uninstall removes the plug-in | release workflow runs 43538121670, 43545579683 |
 | pluginval locally | dev container | not run (downloading and executing the prebuilt binary was not permitted in this environment) | – |
 
 ## 2. Automated tests (Linux, this session)
@@ -84,9 +86,14 @@ Real-time behaviour on actual audio hardware (xruns at 48 kHz/128) is UNTESTED.
 
 All PASS in automated tests: exact project round trip (also through the real VST3 bundle into a fresh instance), corrupted chunk ignored, 64-entry history policy, favorites persistence/dedupe/backup recovery, 8-thread and 4-process concurrent merges, GUI controls change engine state, editor close/reopen while processing, resize limits, 1.5×/2× scale snapshots. Windows DPI behaviour in a real host: UNTESTED.
 
+## 6b. Cross-compiler determinism finding
+
+The first macOS run exposed a real bug: two RNG draws were passed as sibling arguments of one function call; argument evaluation order is unspecified (GCC/MSVC right-to-left, Clang left-to-right), so Clang produced different patterns for 6/16 golden settings. Fixed by explicit sequencing (reference order kept, so stored/reference output is unchanged); reproduced and verified locally with Linux Clang 18. `-ffp-contract=off` was also added for gfb_core as a precaution against arm64 FMA.
+
 ## 7. Not done / known limitations
 
-- No DAW validation (REAPER/Ableton/FL/Bitwig): all UNTESTED.
+- No DAW validation (REAPER/Ableton/FL/Bitwig/Logic): all UNTESTED.
+- Installers are unsigned (no Authenticode, no Apple Developer ID / notarisation).
 - External drag into a DAW: implemented, UNTESTED.
 - No producer listening test yet.
 - pluginval not run locally (only in CI); in-process mode still fails in Editor Automation on Windows (see §1).
