@@ -297,10 +297,23 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
                 else c = makeFill (core, v, pickFill (v, s.family, false), ctx, fp, s.family);
             }
             else if (label == "A'") c = varyCore (core, v, fp, s.family, vocab, ctx, 1, v.range (0, 1), 600);
-            else if (label == "A''") c = varyCore (core, v, fp, s.family, vocab, ctx, v.range (1, 2), v.range (1, 2), 800);
+            else if (label == "A''")
+            {
+                // Explicit sequencing: function-argument evaluation order is unspecified
+                // (GCC/MSVC right-to-left, Clang left-to-right). This order matches the
+                // algorithmVersion 1 reference output.
+                const int pitchOps = v.range (1, 2);
+                const int rhythmOps = v.range (1, 2);
+                c = varyCore (core, v, fp, s.family, vocab, ctx, rhythmOps, pitchOps, 800);
+            }
             else if (label == "B") c = answer;
             else if (label == "B'") c = varyCore (answer, v, fp, s.family, vocab, ctx, 1, 1, 600);
-            else if (label == "F") c = makeFill (v.chancePermille (700) ? core : prevBase, v, pickFill (v, s.family, false), ctx, fp, s.family);
+            else if (label == "F")
+            {
+                const FillCell& fill = pickFill (v, s.family, false); // drawn first (reference order)
+                const bool fromCore = v.chancePermille (700);
+                c = makeFill (fromCore ? core : prevBase, v, fill, ctx, fp, s.family);
+            }
             else if (label == "F2") c = makeFill (core, v, pickFill (v, s.family, true), ctx, fp, s.family);
             else c = core;
             if (b + 1 == plan.size()) pitch::resolveEnding (c.slots, c.pitches, ctx, v);

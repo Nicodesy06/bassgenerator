@@ -20,7 +20,7 @@ Windows: `cmake --preset windows-x64-release`, `cmake --build --preset windows-x
 ## Guardrails
 
 - `src/core`, `src/dsp`, `src/midi/MidiFileExport.*` must stay JUCE-free.
-- Never use `<random>` distributions or libm transcendental functions in the generator/evaluator (cross-platform determinism). Integer weights only. Keep `-ffp-contract=off` on gfb_core (arm64 FMA changes results).
+- Never use `<random>` distributions or libm transcendental functions in the generator/evaluator (cross-platform determinism). Integer weights only. Keep `-ffp-contract=off` on gfb_core (arm64 FMA changes results). Never put two RNG draws in the arguments of one call (evaluation order differs between GCC/MSVC and Clang): sequence them into locals.
 - Any change that alters generator output: bump `kAlgorithmVersion`, regenerate `tests/golden_hashes.inc` with `pattern_diagnostics --golden`, rerun diagnostics and update `docs/QUALITY_REPORT.md`. Stored projects keep their exact notes regardless.
 - Audio thread: no allocation, locks, I/O, logging. `Realtime.AudioPathDoesNotAllocate` must stay green; the schedule reaches the audio thread only through `ScheduleExchange`.
 - Parameter IDs (`volume cutoff resonance envmod decay accent drive glide shape engine`), plugin codes (`Gfau`/`Gfb1`) and state schema keys are stable. Add a migration in `StateCodec::decode` when changing the schema.
