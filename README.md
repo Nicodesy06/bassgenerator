@@ -56,7 +56,7 @@ Output:
 
 - VST3: `build\windows-x64\GrooveForgeBass_artefacts\Release\VST3\GrooveForge Bass.vst3` (cartella-bundle, non solo una `.dll`)
 - Standalone: `build\windows-x64\GrooveForgeBass_artefacts\Release\Standalone\GrooveForge Bass.exe`
-- Pacchetto: `dist\GrooveForgeBass-0.1.0-win64.zip` + `.sha256`
+- Pacchetto: `dist\GrooveForgeBass-<versione>-win64.zip` + `.sha256`
 
 La CI GitHub Actions (`.github/workflows/windows.yml`) compila e testa su `windows-2022` e pubblica lo ZIP come artifact.
 

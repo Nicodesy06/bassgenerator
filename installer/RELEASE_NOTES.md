@@ -1,4 +1,12 @@
-## GrooveForge Bass 0.1.0 — versione preliminare
+## GrooveForge Bass 0.2.0 — versione preliminare
+
+### Novità rispetto alla 0.1.0
+- **Generatore v2**, calibrato confrontandolo con 153 bassline house/tech house di riferimento (usate solo come statistiche aggregate, nessuna bassline copiata):
+  - lascia spazio alla cassa: le note sui battiti 2-3-4 scendono dal 15% al 2% (riferimenti: 0–1%);
+  - note più piene e meno salti d'ottava (dal 14% al 6%), melodia SUB più varia, registro più alto e allineato ai riferimenti.
+- Lo stesso seed ora produce lo stesso pattern su Windows, macOS e Linux (corretto un bug che su macOS dava risultati diversi).
+- I progetti salvati con la 0.1.0 si riaprono con le note esatte di allora. Gli stessi seed generano però pattern diversi, perché l'algoritmo è cambiato.
+
 
 Generatore di linee di basso + sintetizzatore SUB/ACID. VST3 per Windows e macOS, Audio Unit per macOS, applicazione standalone.
 
@@ -6,9 +14,9 @@ Generatore di linee di basso + sintetizzatore SUB/ACID. VST3 per Windows e macOS
 
 | Sistema | File | Contenuto |
 |---|---|---|
-| Windows 10/11 x64 | `GrooveForgeBass-0.1.0-win64-setup.exe` | Installer: VST3 (`C:\Program Files\Common Files\VST3`, oppure per utente) + app standalone, con disinstallazione |
-| Windows 10/11 x64 | `GrooveForgeBass-0.1.0-win64.zip` | Stessi file senza installer (copia manuale) |
-| macOS 11+ (Apple Silicon + Intel) | `GrooveForgeBass-0.1.0-macos-universal.dmg` | Installer `.pkg` con scelta VST3 / Audio Unit / app, guida e script di disinstallazione |
+| Windows 10/11 x64 | `GrooveForgeBass-0.2.0-win64-setup.exe` | Installer: VST3 (`C:\Program Files\Common Files\VST3`, oppure per utente) + app standalone, con disinstallazione |
+| Windows 10/11 x64 | `GrooveForgeBass-0.2.0-win64.zip` | Stessi file senza installer (copia manuale) |
+| macOS 11+ (Apple Silicon + Intel) | `GrooveForgeBass-0.2.0-macos-universal.dmg` | Installer `.pkg` con scelta VST3 / Audio Unit / app, guida e script di disinstallazione |
 
 I file `.sha256` contengono le impronte SHA-256 per verificare i download.
 
