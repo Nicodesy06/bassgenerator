@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <sstream>
 
+#include "core/ReferencePriors.h"
+
 namespace gfb
 {
 namespace
@@ -16,12 +18,40 @@ double inBand (double v, double lo, double hi, double falloff) noexcept
 
 struct Weights
 {
-    double density, sync, offbeat, kick, motif, range, intervals, anchor, ending, contrast, accent, repetition, chain, rest;
+    double density, sync, offbeat, kick, motif, range, intervals, anchor, ending, contrast, accent, repetition, chain, rest, groove, ivPrior;
 };
+
+/** Mean reference likelihood of the pattern's onset positions, relative to the
+    most likely step (0..1). Integer tables, plain arithmetic only (deterministic). */
+double groovePrior (const Pattern& p, KickContext k) noexcept
+{
+    const auto& t = k == KickContext::FourOnFloor ? priors::kRefFourOnFloorSteps : priors::kRefBrokenSteps;
+    const int mx = *std::max_element (t.begin(), t.end());
+    if (p.notes.empty() || mx <= 0) return 0.0;
+    double s = 0;
+    for (const auto& n : p.notes) s += t[(size_t) (tickToStep (n.startTick) % kStepsPerBar)];
+    return s / ((double) p.notes.size() * mx);
+}
+
+/** Mean reference probability of the melodic intervals, relative to the most common non-repeat interval. */
+double intervalPrior (const Pattern& p, KickContext k) noexcept
+{
+    const auto& t = k == KickContext::FourOnFloor ? priors::kRefFourOnFloorIntervals : priors::kRefBrokenIntervals;
+    int mx = 0;
+    for (size_t i = 0; i < t.size(); ++i) if (i != 12) mx = std::max (mx, t[i]);
+    if (p.notes.size() < 2 || mx <= 0) return 1.0;
+    double s = 0;
+    for (size_t i = 1; i < p.notes.size(); ++i)
+    {
+        const int iv = std::clamp ((int) p.notes[i].midiNote - (int) p.notes[i - 1].midiNote, -12, 12);
+        s += std::min (1.0, (double) t[(size_t) (iv + 12)] / mx);
+    }
+    return s / (double) (p.notes.size() - 1);
+}
 
 Weights weightsFor (Feel f, Family fam) noexcept
 {
-    Weights w { 3, 2, 1.5, 1.5, 2, 1.5, 2, 2, 1.5, 1.5, 1, 1.5, 2, 1 };
+    Weights w { 3, 2, 1.5, 1.5, 2, 1.5, 2, 2, 1.5, 1.5, 1, 1.5, 2, 1, 3, 1.5 };
     switch (f)
     {
         case Feel::Sparse:     w.rest = 0.3; w.density = 3.5; w.contrast = 1; break;
@@ -31,8 +61,9 @@ Weights weightsFor (Feel f, Family fam) noexcept
         case Feel::Stabby:     w.contrast = 2.5; w.chain = 3; break;
         default: break;
     }
-    if (fam == Family::Sub) { w.range *= 1.5; w.anchor *= 1.3; w.intervals *= 1.2; }
-    else { w.accent *= 2; w.intervals *= 1.3; }
+    if (fam == Family::Sub) { w.range *= 1.5; w.anchor *= 1.3; w.intervals *= 1.2; w.ivPrior = 2.0; }
+    else { w.accent *= 2; w.intervals *= 1.3; w.ivPrior = 1.0; }
+    if (f == Feel::Sparse || f == Feel::Stabby) w.groove = 2.0; // fewer onsets: position matters less statistically
     return w;
 }
 } // namespace
@@ -91,7 +122,7 @@ ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx)
     add ("offbeat", inBand (m.offbeatRatio * 1000, fp.offbeatLo, fp.offbeatHi, 400), w.offbeat);
     // 4 implied kick interaction (a prior, never a hard ban)
     double kick = 1.0;
-    if (ctx.kick == KickContext::FourOnFloor) kick = 1.0 - std::max (0.0, m.kickCollision - 0.12) * 2.0;
+    if (ctx.kick == KickContext::FourOnFloor) kick = 1.0 - std::max (0.0, m.kickCollision - 0.05) * 3.0; // reference: ~1 %
     else if (ctx.kick == KickContext::Broken) kick = inBand (m.kickCollision, 0.1, 0.45, 0.4);
     add ("kick", kick, w.kick);
     // 5 motif recurrence (structural repetition, but not a frozen loop)
@@ -135,6 +166,10 @@ ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx)
     add ("chain", inBand (m.maxChain, 0, maxChainForFeel (ctx.feel), 3), w.chain);
     // 14 rests
     add ("rest", inBand (m.longestRestSteps, 0, fp.maxRestSteps, 6), w.rest);
+
+    // 15 / 16: priors learned (aggregated) from licensed reference basslines
+    add ("groove_prior", ctx.kick == KickContext::Open ? 0.5 + 0.5 * groovePrior (p, KickContext::Broken) : groovePrior (p, ctx.kick), w.groove);
+    add ("interval_prior", intervalPrior (p, ctx.kick), w.ivPrior);
 
     double num = 0, den = 0;
     for (auto& c : r.components) { num += c.value * c.weight; den += c.weight; }

@@ -82,10 +82,11 @@ TEST_CASE (Generator, DeterministicSameInputsSameHash)
     }
 }
 
-// Golden fixture: exact hashes recorded for algorithmVersion 1. These must be
+// Golden fixture: exact hashes recorded for the current kAlgorithmVersion. These must be
 // identical on every supported compiler/OS (verified on Linux GCC and the
-// Windows MSVC CI job). Update ONLY together with kAlgorithmVersion.
-TEST_CASE (Generator, GoldenHashesAlgorithmV1)
+// Windows MSVC / macOS Apple Clang CI jobs). Update ONLY together with
+// kAlgorithmVersion (regenerate with: pattern_diagnostics --golden).
+TEST_CASE (Generator, GoldenHashes)
 {
     struct G { GeneratorSettings s; uint64_t hash; };
     const std::vector<G> golden = {

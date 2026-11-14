@@ -85,6 +85,11 @@ double onsetSimilarity (const RhythmCell& a, const RhythmCell& b) noexcept;
     feel's density / style rules. */
 bool mutate (RhythmCell& cell, Mutation m, Rng& rng, const FeelProfile& fp, Family fam);
 
+/** Four-on-the-floor helper: move notes off the kick beats (steps 4/8/12 are
+    anticipated by a 16th or removed; a downbeat anchor enters late on the
+    off-8th). Density bounds of the feel are respected. Returns true if changed. */
+bool clearKickBeats (RhythmCell& cell, Rng& rng, const FeelProfile& fp, Family fam, bool includeDownbeat = true);
+
 /** Pick a mutation according to the feel's weights (family-adjusted). */
 Mutation pickMutation (Rng& rng, const FeelProfile& fp, Family fam);
 } // namespace rhythm

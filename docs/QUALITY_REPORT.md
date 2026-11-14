@@ -22,18 +22,18 @@ Status values: PASS (measured/observed), FAIL, PARTIAL, UNTESTED. Numbers below 
 
 ## 3. Generator statistics
 
-Source: `reports/diagnostics_summary.md` (4 200 patterns: 2 families × 7 feel settings × 300, bars cycling 1/2/4/8, random keys/scales/seeds).
+Source: `reports/diagnostics_summary.md`, regenerated for algorithmVersion 2 (4 200 patterns: 2 families × 7 feel settings × 300, bars cycling 1/2/4/8, random keys/scales/seeds).
 
 | Metric | Value |
 |---|---|
 | Invalid events / silent / out-of-scale / illegal overlaps | 0 / 0 / 0 / 0 |
 | Fallbacks, candidate rejections | 0, 0 |
-| Same settings → identical notes & hash | 500/500 |
+| Same settings → identical notes & hash | 500/500 (also identical across GCC, MSVC and Clang: golden test) |
 | 10 000 random cases (all options, octave ±3, kick contexts) | 0 invalid, 0 out-of-scale, 0 silent |
 | Exact duplicates (480 seeds × feel × family, 4 bars) | 0 |
-| VAR-only change: onset Jaccard / note overlap | 0.92 / 0.91 (output changed in 300/300) |
-| STYLE change: onset Jaccard / note overlap | 0.40 / 0.24 |
-| Generation time p50 / p95 / p99 / max | 0.11 / 0.31 / 0.38 / 0.53 ms (Xeon 2.1 GHz) |
+| VAR-only change: onset Jaccard / note overlap | 0.91 / 0.90 (output changed in 300/300) |
+| STYLE change: onset Jaccard / note overlap | 0.43 / 0.25 |
+| Generation time p50 / p95 / p99 / max | 0.13 / 0.34 / 0.39 / 0.57 ms (Xeon 2.1 GHz, 16 style candidates) |
 | Endings resolved (400 phrases) | 400/400 |
 | 4/8-bar phrases with repetition but not frozen | 188/200 |
 
@@ -41,22 +41,42 @@ Feel/family means (selected features):
 
 | Group | onsets/bar | syncopation | off-8th | short-note | sounding | longest rest (16ths) | max 16th chain | distinct pitches | step ratio |
 |---|---|---|---|---|---|---|---|---|---|
-| SUB Sparse | 3.22 | 0.63 | 0.51 | 0.46 | 0.29 | 7.55 | 1.40 | 3.25 | 0.07 |
-| SUB Balanced | 5.98 | 0.61 | 0.53 | 0.55 | 0.46 | 3.56 | 2.27 | 3.65 | 0.06 |
-| SUB Busy | 9.95 | 0.57 | 0.33 | 0.71 | 0.60 | 2.20 | 3.56 | 3.89 | 0.08 |
-| SUB Rolling | 9.32 | 0.71 | 0.39 | 0.89 | 0.45 | 2.66 | 3.19 | 3.60 | 0.05 |
-| SUB Syncopated | 6.07 | 0.71 | 0.36 | 0.47 | 0.56 | 3.58 | 2.19 | 3.56 | 0.08 |
-| SUB Stabby | 5.12 | 0.52 | 0.45 | 0.95 | 0.13 | 5.63 | 1.61 | 3.85 | 0.06 |
-| ACID Sparse | 3.50 | 0.56 | 0.50 | 0.52 | 0.28 | 7.54 | 1.57 | 4.18 | 0.37 |
-| ACID Balanced | 6.12 | 0.56 | 0.52 | 0.58 | 0.42 | 3.58 | 2.26 | 4.80 | 0.36 |
-| ACID Busy | 10.16 | 0.55 | 0.32 | 0.83 | 0.46 | 2.41 | 3.66 | 5.12 | 0.47 |
-| ACID Rolling | 9.04 | 0.61 | 0.39 | 0.83 | 0.43 | 2.55 | 3.13 | 5.14 | 0.37 |
-| ACID Syncopated | 6.08 | 0.66 | 0.44 | 0.49 | 0.52 | 3.40 | 2.21 | 4.81 | 0.40 |
-| ACID Stabby | 5.51 | 0.57 | 0.33 | 0.92 | 0.12 | 5.34 | 1.74 | 4.80 | 0.45 |
+| SUB Sparse | 3.10 | 0.68 | 0.59 | 0.13 | 0.31 | 7.38 | 1.52 | 2.87 | 0.08 |
+| SUB Balanced | 5.62 | 0.68 | 0.57 | 0.04 | 0.49 | 3.53 | 2.12 | 3.78 | 0.11 |
+| SUB Busy | 9.24 | 0.67 | 0.38 | 0.10 | 0.64 | 2.47 | 3.56 | 4.25 | 0.14 |
+| SUB Rolling | 9.01 | 0.76 | 0.42 | 0.15 | 0.54 | 2.84 | 3.00 | 3.90 | 0.09 |
+| SUB Syncopated | 5.70 | 0.77 | 0.41 | 0.07 | 0.56 | 3.66 | 2.09 | 3.66 | 0.13 |
+| SUB Stabby | 4.67 | 0.65 | 0.53 | 0.88 | 0.19 | 5.89 | 1.80 | 3.66 | 0.10 |
+| ACID Sparse | 3.26 | 0.68 | 0.58 | 0.09 | 0.30 | 7.33 | 1.64 | 3.92 | 0.36 |
+| ACID Balanced | 5.72 | 0.64 | 0.57 | 0.05 | 0.44 | 3.89 | 2.18 | 4.54 | 0.34 |
+| ACID Busy | 9.30 | 0.67 | 0.38 | 0.86 | 0.55 | 2.55 | 3.41 | 5.16 | 0.43 |
+| ACID Rolling | 8.21 | 0.73 | 0.45 | 0.07 | 0.49 | 2.82 | 2.78 | 4.92 | 0.37 |
+| ACID Syncopated | 5.86 | 0.72 | 0.49 | 0.03 | 0.54 | 3.54 | 2.25 | 4.73 | 0.37 |
+| ACID Stabby | 5.09 | 0.71 | 0.43 | 0.87 | 0.19 | 5.75 | 1.84 | 4.48 | 0.42 |
 
 Reading: density ladder Sparse < Balanced/Syncopated/Stabby < Rolling < Busy; Stabby has the shortest notes and lowest sounding ratio; Syncopated/Rolling the highest syncopation; Sparse the longest rests; ACID uses ~5–6× more scale steps, more distinct pitches and slides (0.06–0.09 vs ≤0.01) than SUB. Provisional thresholds and their rationale are the assertions in `tests/PatternMetricsTests.cpp`. Known weak spot: SUB Rolling vs SUB Busy differ mainly by syncopation/short-note ratio, not density.
 
 Golden demos: 16 patterns (`reports/demos/demos.md`, `.mid` committed, `.wav` reproducible with `render_demo`). Listening status: **not yet auditioned** (protocol in TEST_PLAN.md; 48-clip blind set reproducible with `render_demo --audition 48`).
+
+## 3b. Calibration against reference basslines (algorithmVersion 1 → 2)
+
+Measured with `tools/reference_analyzer` (same metrics for references and generator; generator: 300 patterns per family × feel, 4 bars, four-on-the-floor). Full aggregate tables: `reports/reference/reference_vs_generator.md`.
+
+| Measure | Reference house / tech house (100 files) | GFB v1 (all feels) | GFB v2 (all feels) |
+|---|---|---|---|
+| Notes on kick beats 2–4 | 0–1 % | 15 % (7–22 % per feel) | **2 %** (1–3 % in Balanced) |
+| Onsets on 2.1 / 3.1 / 4.1 | 0 % / 0–2 % / 2–6 % | 29 % / 34 % / 38 % | **4 % / 4 % / 7 %** |
+| Onsets on the off-8ths (x.3) | 68–96 % | 62–70 % | 64–80 % |
+| Mean note length (16ths) | 1.21–1.83 | 1.00 | 1.18 (Balanced 1.26–1.40) |
+| Time sounding | 49–58 % | 39 % | 44 % (Balanced 44–48 %) |
+| Octave jumps | 8–9 % | 14 % (SUB 16–21 %) | **6 %** |
+| 1–2 semitone steps | 21–22 % | 26 % (SUB 5–12 %, ACID 39–47 %) | 27 % (SUB 9–18 %, ACID 35–43 %) |
+| Repeated pitch | 32–34 % | 33 % | 40 % |
+| Distinct pitches / pattern | 5.8–6.0 | 4.8 | 4.8 (SUB 4.3, ACID 5.4) |
+| Mean MIDI pitch | 49–50 | 41 | 46 (ACID 48, SUB 43) |
+| Fifth as share of notes | 11 % | 15 % (SUB 20 %) | 16 % |
+
+Still different (deliberate or open): ACID stays more step-wise than the references (acid idiom); SUB stays lower and slightly more repetitive; references use ~6–9 % chromatic notes, the generator none (scale is a hard constraint by design); the references still sustain more (49–58 % of the time sounding vs 44 %). Feel-specific tests were updated: Rolling is now distinguished from Balanced by shorter mean note length instead of the "<0.8 step" ratio, which no longer applies with fuller gates.
 
 ## 4. MIDI
 

@@ -78,9 +78,10 @@ int fifthDegree (ScaleType s) noexcept { return degreeOfInterval (s, 7); }
 int referenceRootMidi (int rootPc, Family f) noexcept
 {
     const int pc = floorMod (rootPc, 12);
+    // registers aligned with the reference basslines (mean MIDI pitch ~50)
     if (f == Family::Sub)
-        return pc >= 7 ? 24 + pc : 36 + pc; // G1(31)..F#2(42)
-    return 36 + pc;                          // C2(36)..B2(47)
+        return 36 + pc;                      // C2(36)..B2(47)
+    return pc >= 5 ? 36 + pc : 48 + pc;      // F2(41)..E3(52)
 }
 
 std::string rootName (int pc)

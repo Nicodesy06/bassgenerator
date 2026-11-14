@@ -10,3 +10,4 @@ CMakeUserPresets.json
 /reports/**/*.wav
 /reports/audition/
 /build-asan/
+/reference-midi/

@@ -21,8 +21,8 @@ namespace
 constexpr int kNA = 999;
 constexpr int kRoles = (int) PitchRole::Count;
 //                                        Root Oct Fif FBl 7Bl 3rd 4th 2nd 6th 6Bl O3
-constexpr std::array<int, kRoles> kSubWeights  { 0,  6,  5,  4,  4,  3,  2,  1,  0,  1,  0 };
-constexpr std::array<int, kRoles> kAcidWeights { 0,  5,  4,  2,  3,  5,  3,  4,  2,  1,  2 };
+constexpr std::array<int, kRoles> kSubWeights  { 0,  3,  4,  4,  4,  5,  5,  3,  0,  1,  0 };
+constexpr std::array<int, kRoles> kAcidWeights { 0,  4,  5,  3,  4,  5,  5,  3,  2,  1,  1 };
 
 int firstPresent (ScaleType s, std::initializer_list<int> ivs) noexcept
 {
@@ -69,20 +69,24 @@ int transitionWeight (const VocabEntry& e, int prev, int prevLeap, int run, cons
     const int iv = e.semis - prev;
     const int a = std::abs (iv);
     int w = rolePrior (e.role);
+    // interval preferences re-balanced against the reference basslines:
+    // repeats ~40 %, steps ~20 %, fourth/fifth ~17 %, octave jumps ~7 %
     if (ctx.family == Family::Sub)
     {
-        if (a == 0) w *= 3;
-        else if (a == 5 || a == 7 || a == 12) w *= 4;
+        if (a == 0) w *= 4;
+        else if (a <= 2) w *= 3;
+        else if (a == 5 || a == 7) w *= 3;
         else if (a <= 4) w *= 2;
+        else if (a == 12) w *= 1;
         else w *= 1;
     }
     else
     {
-        if (a == 0) w *= 3;
-        else if (a <= 2) w *= 5;
-        else if (a <= 4) w *= 3;
-        else if (a == 12) w *= 3;
-        else if (a <= 7) w *= 2;
+        if (a == 0) w *= 4;
+        else if (a <= 2) w *= 4;
+        else if (a <= 5) w *= 3;
+        else if (a == 7) w *= 2;
+        else if (a == 12) w *= 1;
         else w *= 1;
     }
     // after a leap, prefer to turn back (gap-fill) and forbid a second leap the same way
@@ -93,7 +97,7 @@ int transitionWeight (const VocabEntry& e, int prev, int prevLeap, int run, cons
         else if (! sameDir && iv != 0) w *= 2;
     }
     // stop endless repetition: Acid max 3 identical in a row, Sub max 4 (pedal contour 6)
-    const int maxRun = ctx.family == Family::Acid ? 3 : (ctx.contour == ContourHint::Pedal ? 6 : 4);
+    const int maxRun = ctx.family == Family::Acid ? 3 : (ctx.contour == ContourHint::Pedal ? 5 : 3);
     if (a == 0 && run >= maxRun) w = 0;
     // accented notes lean on stable tones
     if (slot.accent >= 2 && isStable (e.semis)) w *= 2;
@@ -115,7 +119,7 @@ int transitionWeight (const VocabEntry& e, int prev, int prevLeap, int run, cons
 } // namespace
 
 int minSemis (Family f) noexcept { return f == Family::Sub ? -7 : -5; }
-int maxSemis (Family f) noexcept { return f == Family::Sub ? 12 : 17; }
+int maxSemis (Family f) noexcept { return f == Family::Sub ? 12 : 15; }
 
 int roleSemis (PitchRole r, ScaleType s) noexcept
 {
@@ -150,7 +154,7 @@ MotifVocabulary chooseVocabulary (Rng& rng, const PitchContext& ctx)
         return true;
     };
 
-    int size = ctx.family == Family::Sub ? 1 + rng.range (1, 3) : 1 + rng.range (2, 5);
+    int size = ctx.family == Family::Sub ? 1 + rng.range (2, 5) : 1 + rng.range (3, 5);
     if (ctx.contour == ContourHint::Pedal) size = std::min (size, ctx.family == Family::Sub ? 2 : 3);
     if (ctx.contour == ContourHint::Riff) size = std::clamp (size, 3, 4);
 

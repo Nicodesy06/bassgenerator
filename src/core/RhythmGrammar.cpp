@@ -10,13 +10,13 @@ namespace
 using M = Mutation;
 //                                    Rem Add Spl Mrg Ant Del Acc Gho Oct Pck Sld
 constexpr std::array<FeelProfile, kNumFeels> kProfiles {{
-    { Feel::Random,     4,  9,  6, 650, 880, 54, 150, 300, 650, 300, 700, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1 } },
-    { Feel::Sparse,     2,  6,  3, 700, 920, 52,  80, 250, 750, 300, 850, 13, 2, { 3, 1, 1, 2, 2, 2, 2, 1, 2, 2, 1 } },
-    { Feel::Balanced,   4,  9,  6, 650, 880, 54, 150, 250, 650, 300, 750, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 1 } },
-    { Feel::Busy,       8, 13, 10, 540, 840, 52, 250, 250, 650, 150, 600,  4, 3, { 2, 3, 3, 1, 1, 0, 3, 3, 1, 1, 2 } },
-    { Feel::Rolling,    6, 12,  9, 600, 860, 56, 250, 450, 850, 300, 750,  5, 2, { 1, 2, 2, 1, 1, 0, 2, 4, 1, 2, 1 } },
-    { Feel::Syncopated, 4, 10,  6, 720, 920, 54, 100, 500, 950, 150, 700,  9, 2, { 1, 1, 1, 2, 4, 2, 2, 1, 1, 2, 1 } },
-    { Feel::Stabby,     3,  9,  5, 330, 450, 52,  60, 250, 800, 150, 700, 10, 2, { 2, 2, 0, 0, 2, 2, 3, 1, 2, 1, 0 } },
+    { Feel::Random,     4,  9,  6, 880, 950, 54, 150, 300, 650, 300, 700, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1 } },
+    { Feel::Sparse,     2,  6,  3, 900, 960, 52,  80, 250, 750, 300, 850, 13, 2, { 3, 1, 1, 2, 2, 2, 2, 1, 2, 2, 1 } },
+    { Feel::Balanced,   4,  9,  6, 880, 950, 54, 150, 250, 650, 300, 750, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 1 } },
+    { Feel::Busy,       8, 13, 10, 820, 930, 52, 250, 250, 650, 150, 600,  4, 3, { 2, 3, 3, 1, 1, 0, 3, 3, 1, 1, 2 } },
+    { Feel::Rolling,    6, 12,  9, 850, 940, 56, 250, 450, 850, 300, 750,  5, 2, { 1, 2, 2, 1, 1, 0, 2, 4, 1, 2, 1 } },
+    { Feel::Syncopated, 4, 10,  6, 900, 960, 54, 100, 500, 950, 150, 700,  9, 2, { 1, 1, 1, 2, 4, 2, 2, 1, 1, 2, 1 } },
+    { Feel::Stabby,     3,  9,  5, 520, 600, 52,  60, 250, 800, 150, 700, 10, 2, { 2, 2, 0, 0, 2, 2, 3, 1, 2, 1, 0 } },
 }};
 
 bool isOnset (const Step& s) noexcept { return s.kind == StepKind::Onset; }
@@ -187,6 +187,53 @@ double onsetSimilarity (const RhythmCell& a, const RhythmCell& b) noexcept
         uni += (x || y) ? 1 : 0;
     }
     return uni == 0 ? 1.0 : (double) inter / (double) uni;
+}
+
+bool clearKickBeats (RhythmCell& cell, Rng& rng, const FeelProfile& fp, Family, bool includeDownbeat)
+{
+    RhythmCell c = cell;
+    auto& st = c.steps;
+    bool changed = false;
+    for (int b : { 4, 8, 12 })
+    {
+        if (! isOnset (st[(size_t) b]) || st[(size_t) b].role == Role::Ghost) continue;
+        const int r = rng.range (0, 9);
+        if (r < 6 && st[(size_t) b - 1].kind == StepKind::Rest)
+        {
+            Step moved = st[(size_t) b];
+            if (moved.role == Role::Anchor) moved.role = Role::Normal;
+            moved.accent = 2;
+            st[(size_t) b - 1] = moved; // anticipation, held through the kick
+            st[(size_t) b] = { StepKind::Hold, 1, Role::Normal, false };
+            changed = true;
+        }
+        else if (r < 9 && onsetCount (c) - 1 >= fp.minOnsets)
+        {
+            clearSlidesInto (c, b);
+            const int e = noteEnd (c, b);
+            for (int i = b; i < e; ++i) st[(size_t) i] = {};
+            changed = true;
+        }
+    }
+    if (includeDownbeat && isOnset (st[0]) && rng.chancePermille (700))
+    {
+        const int d = rng.chancePermille (750) ? 2 : 3; // late entry on the "and" (or the "a")
+        bool free = true;
+        for (int i = 1; i <= d; ++i) free = free && ! isOnset (st[(size_t) i]);
+        if (free)
+        {
+            const Step first = st[0];
+            for (int i = 0; i < d; ++i) st[(size_t) i] = {};
+            st[(size_t) d] = first;
+            if (d + 1 < kStepsPerBar && st[(size_t) d + 1].kind == StepKind::Rest && first.role == Role::Anchor)
+                st[(size_t) d + 1] = { StepKind::Hold, 1, Role::Normal, false };
+            changed = true;
+        }
+    }
+    const int n = onsetCount (c);
+    if (! changed || n < fp.minOnsets || n > fp.maxOnsets || n == 0) return false;
+    cell = c;
+    return true;
 }
 
 Mutation pickMutation (Rng& rng, const FeelProfile& fp, Family fam)
