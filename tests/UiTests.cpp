@@ -85,10 +85,11 @@ int main (int argc, char** argv)
 
         // history back restores the previous exact pattern
         button (*ed, "<")->triggerClick();
-        pump (50);
+        pump (250); // the editor re-enables ">" on its next 30 Hz refresh; give slow CI runners time
         check (proc.getPattern().notes == after.pattern.notes, "history back restores the exact previous pattern");
+        check (button (*ed, ">")->isEnabled(), "forward button enabled after going back");
         button (*ed, ">")->triggerClick();
-        pump (50);
+        pump (250);
         check (proc.getPattern().notes == v.pattern.notes, "history forward returns");
 
         // family segmented -> ACID changes generator family AND synth engine
