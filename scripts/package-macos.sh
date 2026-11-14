@@ -26,7 +26,13 @@ stage() { # id src dest-dir
   ditto "$src" "$WORK/root-$id$dest/$(basename "$src")"
   pkgbuild --analyze --root "$WORK/root-$id" "$WORK/$id.plist" >/dev/null
   # never let Installer relocate the bundle to another copy with the same id
-  /usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" "$WORK/$id.plist"
+  # (pkgbuild only lists bundles it recognises; with no entry there is nothing to relocate)
+  local i=0
+  while /usr/libexec/PlistBuddy -c "Print :$i" "$WORK/$id.plist" >/dev/null 2>&1; do
+    /usr/libexec/PlistBuddy -c "Set :$i:BundleIsRelocatable false" "$WORK/$id.plist" || true
+    i=$((i + 1))
+  done
+  echo "$id: $i bundle entr(y/ies) marked non-relocatable"
   pkgbuild --root "$WORK/root-$id" --component-plist "$WORK/$id.plist" \
            --identifier "com.grooveforge.bass.$id" --version "$VERSION" \
            --install-location / "$WORK/$id.pkg"
