@@ -15,6 +15,15 @@ Generatore di linee di basso + sintetizzatore di basso integrato, plugin **VST3 
 - **Esporta MIDI** (.mid SMF tipo 0, PPQ 960, tempo e 4/4) e **trascina** il pattern direttamente su una traccia del DAW. Opzione **MIDI OUT** VST3 (dipende dall'host).
 - Sync al transport del DAW oppure **PREVIEW** a transport fermo.
 
+## Download e installazione (consigliato)
+
+Scarica l'ultima versione dalla sezione **Releases** del repository:
+
+- **Windows 10/11 x64**: `GrooveForgeBass-<versione>-win64-setup.exe`. L'installer mette il plug-in VST3 in `C:\Program Files\Common Files\VST3` (oppure, se scegli "solo per me", in `%LOCALAPPDATA%\Programs\Common\VST3`), installa l'app standalone e include la disinstallazione (Impostazioni → App).
+- **macOS 11+ (Apple Silicon e Intel)**: `GrooveForgeBass-<versione>-macos-universal.dmg`. Apri il DMG, esegui `Installa GrooveForge Bass.pkg` e scegli VST3, Audio Unit (Logic/GarageBand) e/o l'app. Nel DMG c'è anche lo script di disinstallazione.
+
+Gli installer **non sono firmati**: su Windows SmartScreen può chiedere "Esegui comunque"; su macOS apri il `.pkg` con clic destro → Apri.
+
 ## Requisiti di build (Windows)
 
 - Windows 10/11 x64, **Visual Studio 2022** con il workload "Sviluppo di applicazioni desktop con C++" (MSVC + Windows SDK)
@@ -36,6 +45,12 @@ powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1
 powershell -ExecutionPolicy Bypass -File scripts\test-windows.ps1 -Pluginval C:\tools\pluginval.exe
 powershell -ExecutionPolicy Bypass -File scripts\package-windows.ps1
 ```
+
+Installer `.exe` (Inno Setup 6): `scripts\build-installer-windows.ps1` → `dist\GrooveForgeBass-<versione>-win64-setup.exe`.
+
+macOS (Xcode + CMake + Ninja): `cmake --preset macos-universal-release`, `cmake --build --preset macos-universal-release`, `./scripts/package-macos.sh` → `dist/GrooveForgeBass-<versione>-macos-universal.dmg`.
+
+Release: un tag `vX.Y.Z` avvia `.github/workflows/release.yml`, che compila e testa su Windows e macOS, crea gli installer, li installa e verifica sulle macchine CI e li pubblica nella sezione Releases.
 
 Output:
 
