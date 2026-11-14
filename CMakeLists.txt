@@ -51,6 +51,10 @@ if(MSVC)
     target_compile_options(gfb_core PRIVATE /W4 /permissive-)
 else()
     target_compile_options(gfb_core PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wno-sign-conversion)
+    # Clang contracts a*b+c into FMA by default; on arm64 (Apple Silicon) that changes
+    # evaluator scores in the last bit and therefore the chosen candidate. Keep IEEE
+    # separate rounding everywhere so patterns are identical on every platform.
+    target_compile_options(gfb_core PRIVATE -ffp-contract=off)
 endif()
 
 # ---------------------------------------------------------------------------

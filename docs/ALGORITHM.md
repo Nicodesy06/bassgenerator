@@ -56,8 +56,8 @@ Hard rejects: invalid, silent, out-of-scale, empty bar, ≥12-step 16th chain. S
 
 - PRNG: SplitMix64 seeding + xoshiro256**; bounded integers by Lemire multiply-shift with exact rejection; weighted choice with **integer weights only**. No `<random>` distributions.
 - Domain separation: `deriveSeed(seed, "style-core" | "style-candidate"#i | "answer" | "var-candidate"#j | "expression")`; the VAR base is `var ^ mix64(style)`.
-- Floating point in the evaluator uses only + − × ÷ and comparisons (no libm transcendental), compiled without FP contraction (`CMAKE_CXX_EXTENSIONS OFF`, MSVC `/fp:precise`).
-- Golden fixture: 16 exact hashes (`tests/golden_hashes.inc`) recorded on Linux/GCC and checked on Windows/MSVC in CI.
+- Floating point in the evaluator uses only + − × ÷ and comparisons (no libm transcendental), compiled without FP contraction (`-ffp-contract=off` on GCC/Clang — required on arm64 where Clang would otherwise emit FMA — and MSVC `/fp:precise`).
+- Golden fixture: 16 exact hashes (`tests/golden_hashes.inc`) recorded on Linux/GCC x86-64 and checked on Windows/MSVC x64 and macOS/Apple Clang arm64 + x86-64 in CI. (The first macOS run caught a mismatch on arm64 caused by FMA contraction; fixed by `-ffp-contract=off`.)
 - Semantics (measured, 500 pairs): changing only VAR keeps 0.92 onset Jaccard / 0.91 note overlap; changing STYLE drops to 0.40 / 0.24; VAR changes the output in 300/300 cases (`Generator.VarPreservesStructureStyleChangesConcept`).
 - Roll: GENERATE = new STYLE+VAR unless locked; NEW STYLE / NEW VAR = one seed; RANDOMISE = every unlocked setting with club weighting (minor modes favoured, bars 4 most likely, octave −1…+1). New seeds are drawn from 1…999 999 for readability; any uint64 can be typed (decimal or 0x hex, overflow rejected).
 
