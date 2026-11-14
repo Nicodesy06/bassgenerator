@@ -1,6 +1,10 @@
 {
   "version": 6,
-  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
   "configurePresets": [
     {
       "name": "windows-x64-release",
@@ -13,7 +17,11 @@
         "GFB_BUILD_TESTS": "ON",
         "GFB_BUILD_TOOLS": "ON"
       },
-      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
     },
     {
       "name": "linux-release",
@@ -24,26 +32,76 @@
         "CMAKE_BUILD_TYPE": "Release",
         "GFB_JUCE_DIR": "$env{GFB_JUCE_DIR}"
       },
-      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "macos-universal-release",
+      "displayName": "macOS universal (arm64 + x86_64, Ninja, Release)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/macos",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_OSX_ARCHITECTURES": "arm64;x86_64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "11.0",
+        "GFB_JUCE_DIR": "$env{GFB_JUCE_DIR}"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
     }
   ],
   "buildPresets": [
-    { "name": "windows-x64-release", "configurePreset": "windows-x64-release", "configuration": "Release" },
-    { "name": "linux-release", "configurePreset": "linux-release" }
+    {
+      "name": "windows-x64-release",
+      "configurePreset": "windows-x64-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release"
+    },
+    {
+      "name": "macos-universal-release",
+      "configurePreset": "macos-universal-release"
+    }
   ],
   "testPresets": [
     {
       "name": "windows-x64-release",
       "configurePreset": "windows-x64-release",
       "configuration": "Release",
-      "output": { "outputOnFailure": true },
-      "execution": { "noTestsAction": "error" }
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
     },
     {
       "name": "linux-release",
       "configurePreset": "linux-release",
-      "output": { "outputOnFailure": true },
-      "execution": { "noTestsAction": "error" }
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "macos-universal-release",
+      "configurePreset": "macos-universal-release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
     }
   ]
 }

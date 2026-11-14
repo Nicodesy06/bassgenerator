@@ -1,0 +1,13 @@
+GrooveForge Bass - generatore di linee di basso + sintetizzatore (VST3 strumento)
+
+Il plug-in VST3 viene installato in:
+  - C:\Program Files\Common Files\VST3\  (installazione per tutti gli utenti)
+  - %LOCALAPPDATA%\Programs\Common\VST3\  (installazione solo per l'utente corrente)
+
+Dopo l'installazione apri il tuo DAW e ripeti la scansione dei plug-in.
+
+Note: questa e' una versione preliminare (0.x). L'installer non e' firmato digitalmente:
+Windows SmartScreen puo' mostrare un avviso ("Ulteriori informazioni" > "Esegui comunque").
+Il plug-in e' stato verificato con test automatici e pluginval, ma non ancora in tutti i DAW.
+
+GrooveForge Bass e' costruito con JUCE (AGPLv3 / licenza commerciale).

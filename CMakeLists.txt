@@ -70,13 +70,18 @@ if(GFB_BUILD_PLUGIN OR GFB_BUILD_TESTS)
 endif()
 
 if(GFB_BUILD_PLUGIN)
+    set(GFB_FORMATS VST3 Standalone)
+    if(APPLE)
+        list(APPEND GFB_FORMATS AU)   # Logic Pro / GarageBand
+    endif()
     juce_add_plugin(GrooveForgeBass
         COMPANY_NAME "GrooveForge Audio"
         COMPANY_WEBSITE ""
         BUNDLE_ID "com.grooveforge.bass"
         PLUGIN_MANUFACTURER_CODE Gfau
         PLUGIN_CODE Gfb1
-        FORMATS VST3 Standalone
+        FORMATS ${GFB_FORMATS}
+        AU_MAIN_TYPE kAudioUnitType_MusicDevice
         PRODUCT_NAME "GrooveForge Bass"
         DESCRIPTION "Bassline generator and bass synthesizer"
         IS_SYNTH TRUE

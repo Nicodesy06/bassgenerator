@@ -1,0 +1,23 @@
+GrooveForge Bass per macOS (Apple Silicon + Intel, macOS 11 o successivo)
+
+INSTALLAZIONE
+1. Fai doppio clic su "Installa GrooveForge Bass.pkg".
+   Se macOS dice che non puo' essere aperto perche' lo sviluppatore non e' identificato:
+   clic destro (o Ctrl+clic) sul file > Apri > Apri,
+   oppure Impostazioni di Sistema > Privacy e sicurezza > "Apri comunque".
+   (Il pacchetto non e' firmato con un Developer ID Apple ne' notarizzato.)
+2. Scegli i componenti: VST3, Audio Unit, App standalone.
+3. Riavvia il DAW. In Logic Pro: Impostazioni > Plug-in Manager > "Reimposta e riscansiona".
+
+PERCORSI
+  VST3: /Library/Audio/Plug-Ins/VST3/GrooveForge Bass.vst3
+  AU:   /Library/Audio/Plug-Ins/Components/GrooveForge Bass.component
+  App:  /Applications/GrooveForge Bass.app
+  Preferiti: ~/Library/GrooveForgeBass/favorites.json
+
+DISINSTALLAZIONE
+  Doppio clic su "Disinstalla GrooveForge Bass.command" (chiede la password di amministratore).
+
+STATO
+  Versione preliminare: verificata con test automatici, non ancora provata in tutti i DAW.
+  Costruito con JUCE (AGPLv3 / licenza commerciale).

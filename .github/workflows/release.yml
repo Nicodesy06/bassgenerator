@@ -1,0 +1,116 @@
+name: release
+
+# Tag push vX.Y.Z  -> build + test Windows and macOS, create installers,
+#                     publish them as a GitHub Release (pre-release for 0.x).
+# workflow_dispatch -> same builds, installers uploaded as workflow artifacts only.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows installer (.exe)
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake --preset windows-x64-release
+      - name: Build
+        run: cmake --build --preset windows-x64-release --parallel
+      - name: Test
+        run: ctest --preset windows-x64-release --output-on-failure
+      - name: ZIP package
+        shell: pwsh
+        run: ./scripts/package-windows.ps1
+      - name: Installer (Inno Setup)
+        shell: pwsh
+        run: ./scripts/build-installer-windows.ps1
+      - name: Silent install / uninstall smoke test
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist -Filter *-win64-setup.exe | Select-Object -First 1
+          $p = Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/ALLUSERS' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "install exit $($p.ExitCode)" }
+          $vst = "$env:CommonProgramFiles\VST3\GrooveForge Bass.vst3\Contents\x86_64-win\GrooveForge Bass.vst3"
+          $app = "$env:ProgramFiles\GrooveForge Bass\GrooveForge Bass.exe"
+          if (-not (Test-Path $vst)) { throw "VST3 not installed at $vst" }
+          if (-not (Test-Path $app)) { throw "app not installed at $app" }
+          Write-Host "installed: $vst"
+          ./build/windows-x64/tests/gfb_host_test_artefacts/Release/gfb_host_test.exe "$env:CommonProgramFiles\VST3\GrooveForge Bass.vst3"
+          if ($LASTEXITCODE -ne 0) { throw "installed plug-in failed the host harness" }
+          $un = "$env:ProgramFiles\GrooveForge Bass\unins000.exe"
+          $p = Start-Process $un -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "uninstall exit $($p.ExitCode)" }
+          Start-Sleep -Seconds 3
+          if (Test-Path "$env:CommonProgramFiles\VST3\GrooveForge Bass.vst3") { throw "VST3 left behind after uninstall" }
+          Write-Host "uninstall OK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            dist/*-win64-setup.exe
+            dist/*-win64-setup.exe.sha256
+            dist/*-win64.zip
+            dist/*-win64.zip.sha256
+
+  macos:
+    name: macOS installer (.dmg)
+    runs-on: macos-14
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: |
+          which ninja || brew install ninja
+          xcodebuild -version
+      - name: Configure (universal arm64 + x86_64)
+        run: cmake --preset macos-universal-release
+      - name: Build
+        run: cmake --build --preset macos-universal-release --parallel
+      - name: Test
+        run: ctest --preset macos-universal-release --output-on-failure
+      - name: DMG
+        run: ./scripts/package-macos.sh
+      - name: Install package + validate (AU with auval, VST3 with host harness)
+        run: |
+          set -euxo pipefail
+          hdiutil attach dist/*.dmg -mountpoint /tmp/gfbdmg -nobrowse
+          sudo installer -pkg "/tmp/gfbdmg/Installa GrooveForge Bass.pkg" -target /
+          hdiutil detach /tmp/gfbdmg
+          ls -la "/Library/Audio/Plug-Ins/VST3" "/Library/Audio/Plug-Ins/Components" "/Applications/GrooveForge Bass.app"
+          killall -9 AudioComponentRegistrar || true
+          auval -a | grep -i grooveforge || true
+          auval -v aumu Gfb1 Gfau
+          build/macos/tests/gfb_host_test_artefacts/Release/gfb_host_test "/Library/Audio/Plug-Ins/VST3/GrooveForge Bass.vst3"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: |
+            dist/*.dmg
+            dist/*.dmg.sha256
+
+  publish:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la assets
+          TAG="${GITHUB_REF_NAME}"
+          FLAGS=""
+          case "$TAG" in v0.*) FLAGS="--prerelease";; esac
+          gh release create "$TAG" assets/* --title "GrooveForge Bass ${TAG#v}" --notes-file installer/RELEASE_NOTES.md $FLAGS
