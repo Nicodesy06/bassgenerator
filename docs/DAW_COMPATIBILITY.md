@@ -14,6 +14,7 @@ Legend: **validated** = observed working in that host; **harness** = verified by
 | HiDPI 125/150/200 % | snapshot scale 1.5×/2× | – | – | not tested | not tested | not tested | not tested |
 
 Notes
+- Windows install (0.3.0): the installer always targets `C:\Program Files\Common Files\VST3` (admin) and removes the 0.1/0.2 per-user copy in `%LOCALAPPDATA%\Programs\Common\VST3`, which many hosts do not scan. The plug-in is linked against the static MSVC runtime (`/MT`); CI checks with `dumpbin /dependents` that it has no VCRUNTIME/MSVCP import, so it loads on machines without the VC++ Redistributable. Both were the likely causes of the user report "the VST3 does not install". The fix is verified by CI only (silent install + host harness on the installed bundle), **not yet confirmed on the user's PC / DAW**.
 - macOS: the AU passes Apple's `auval` and the VST3 passes the JUCE host harness on the GitHub macOS runner (installed from the release .pkg). Logic Pro / GarageBand themselves are **not tested**.
 - No DAW was available in the development environment (Linux container). Everything in DAW columns is **not tested**.
 - External drag uses `juce::DragAndDropContainer::performExternalDragDropOfFiles` with a pre-written file (`canMoveFiles=false`). If a host's window does not accept the drag, the UI shows an error and EXPORT remains available.

@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(GrooveForgeBass VERSION 0.2.0 LANGUAGES C CXX)
+project(GrooveForgeBass VERSION 0.3.0 LANGUAGES C CXX)
+
+# Static MSVC runtime (/MT): the plug-in DLL must load on machines without the
+# Visual C++ Redistributable. A missing VCRUNTIME140.dll makes hosts silently
+# skip the VST3, which looks exactly like "the plug-in did not install".
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -111,7 +116,8 @@ if(GFB_BUILD_PLUGIN)
         src/ui/SeedBox.cpp
         src/ui/GeneratorPanel.cpp
         src/ui/SynthPanel.cpp
-        src/ui/BrowserPanel.cpp)
+        src/ui/BrowserPanel.cpp
+        src/ui/FeedbackBar.cpp)
 
     target_compile_definitions(GrooveForgeBass PUBLIC
         JUCE_WEB_BROWSER=0

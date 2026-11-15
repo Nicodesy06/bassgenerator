@@ -29,18 +29,16 @@ void SeedBox::step (int64_t d)
 void SeedBox::paint (juce::Graphics& g)
 {
     auto r = getLocalBounds().toFloat().reduced (0.5f);
-    g.setColour (colours::bg);
-    g.fillRoundedRectangle (r, 5.0f);
-    g.setColour (hasKeyboardFocus (true) ? colours::focus : (dragging ? accent : colours::outline));
-    g.drawRoundedRectangle (r, 5.0f, 1.0f);
-    auto area = getLocalBounds().reduced (8, 2);
-    g.setColour (accent);
-    g.setFont (font (11.0f, true));
+    g.setColour (hasKeyboardFocus (true) ? colours::focus : (dragging ? colours::red : colours::ink));
+    g.fillRect (r.getX(), r.getBottom() - (hasKeyboardFocus (true) || dragging ? 2.0f : 1.0f), r.getWidth(), hasKeyboardFocus (true) || dragging ? 2.0f : 1.0f);
+    auto area = getLocalBounds().reduced (2, 2);
+    g.setColour (colours::textDim);
+    g.setFont (font (11.5f));
     g.drawText (caption, area.removeFromLeft (44), juce::Justification::centredLeft);
     if (editor == nullptr)
     {
         g.setColour (colours::text);
-        g.setFont (juce::Font (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(), juce::jlimit (13.0f, 18.0f, (float) getHeight() * 0.52f), juce::Font::bold)));
+        g.setFont (monoFont (juce::jlimit (13.0f, 18.0f, (float) getHeight() * 0.5f), true));
         g.drawFittedText (juce::String (seedToString (value)), area, juce::Justification::centredRight, 1, 0.6f);
     }
 }

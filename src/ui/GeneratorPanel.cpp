@@ -48,8 +48,7 @@ GeneratorPanel::GeneratorPanel (GrooveForgeProcessor& p) : proc (p)
         l->setTooltip (kLockTip);
         l->onClick = [this] { pushLocks(); };
     }
-    generateBtn.setColour (juce::TextButton::buttonColourId, colours::forge);
-    generateBtn.setColour (juce::TextButton::textColourOffId, juce::Colours::black);
+    generateBtn.setColour (juce::TextButton::buttonColourId, colours::ink);
     generateBtn.setTooltip ("Generate a new bassline: new STYLE + VAR seeds (unless locked), current key/scale/family/feel/bars. Shortcut: G");
     generateBtn.onClick = [this] { proc.generate (RollMode::Seeds); };
     diceBtn.setTooltip ("Randomise every unlocked setting (key, scale, family, feel, bars, octave) and both seeds");
@@ -104,22 +103,25 @@ void GeneratorPanel::pushLocks()
 
 void GeneratorPanel::paint (juce::Graphics& g)
 {
-    g.setColour (colours::panel);
-    g.fillRoundedRectangle (getLocalBounds().toFloat(), 8.0f);
-    auto logo = getLocalBounds().reduced (14, 10).removeFromLeft (logoWidth - 8);
-    g.setColour (colours::forge);
-    g.setFont (font (juce::jlimit (15.0f, 22.0f, (float) logoWidth * 0.125f), true));
-    g.drawText ("GROOVEFORGE", logo.removeFromTop (logo.getHeight() / 2 + 6), juce::Justification::bottomLeft);
+    // Swiss masthead: heavy rule, bold wordmark, small red square as the only ornament
+    g.setColour (colours::ink);
+    g.fillRect (0, 0, getWidth(), 3);
+    auto logo = getLocalBounds().withTrimmedTop (10).removeFromLeft (logoWidth - 8);
+    g.setFont (font (juce::jlimit (18.0f, 26.0f, (float) logoWidth * 0.14f), true));
+    g.drawText ("GrooveForge", logo.removeFromTop (logo.getHeight() / 2 + 4), juce::Justification::bottomLeft);
+    auto sub = logo.withTrimmedTop (2);
+    g.setColour (colours::red);
+    g.fillRect (sub.getX(), sub.getY() + 4, 9, 9);
     g.setColour (colours::textDim);
-    g.setFont (font (13.0f, true));
-    g.drawText ("BASS  " GFB_VERSION_STRING, logo, juce::Justification::topLeft);
+    g.setFont (font (12.5f));
+    g.drawText ("Bass  " GFB_VERSION_STRING, sub.withTrimmedLeft (15).withHeight (17), juce::Justification::centredLeft);
     for (auto& [r, t] : captions) drawCaption (g, r, t);
 }
 
 void GeneratorPanel::resized()
 {
     captions.clear();
-    auto r = getLocalBounds().reduced (12, 8);
+    auto r = getLocalBounds().withTrimmedTop (10).withTrimmedBottom (4);
     logoWidth = juce::jlimit (128, 186, getWidth() / 8);
     r.removeFromLeft (logoWidth);
     auto right = r.removeFromRight (juce::jmin (300, r.getWidth() / 4));
@@ -169,8 +171,8 @@ ActionBar::ActionBar (GrooveForgeProcessor& p) : proc (p)
     for (auto* c : std::initializer_list<juce::Component*> { &style, &var, &lStyle, &lVar, &newStyle, &newVar, &back, &fwd, &histLabel, &favBtn, &exportBtn,
                                                               &dragBtn, &previewBtn, &syncBtn, &midiOutBtn, &browserBtn })
         addAndMakeVisible (*c);
-    style.setAccent (colours::forge);
-    var.setAccent (colours::focus);
+    style.setAccent (colours::ink);
+    var.setAccent (colours::ink);
     auto pushSeeds = [this] {
         if (updating) return;
         auto s = proc.getStateSnapshot().settings;
@@ -244,13 +246,13 @@ void ActionBar::refresh (const state::InstanceState& s, bool preview, bool sync,
 
 void ActionBar::paint (juce::Graphics& g)
 {
-    g.setColour (colours::panel);
-    g.fillRoundedRectangle (getLocalBounds().toFloat(), 8.0f);
+    g.setColour (colours::rule);
+    g.fillRect (0, 0, getWidth(), 1);
 }
 
 void ActionBar::resized()
 {
-    auto r = getLocalBounds().reduced (8, 6);
+    auto r = getLocalBounds().withTrimmedTop (8).withTrimmedBottom (2);
     const int W = r.getWidth();
     // proportional layout: seeds | history | actions, every element keeps a readable minimum
     auto take = [&] (int w) { auto a = r.removeFromLeft (w); r.removeFromLeft (5); return a; };

@@ -24,6 +24,9 @@ Windows: `cmake --preset windows-x64-release`, `cmake --build --preset windows-x
 - Any change that alters generator output: bump `kAlgorithmVersion`, regenerate `tests/golden_hashes.inc` with `pattern_diagnostics --golden`, rerun diagnostics and update `docs/QUALITY_REPORT.md`. Stored projects keep their exact notes regardless.
 - Audio thread: no allocation, locks, I/O, logging. `Realtime.AudioPathDoesNotAllocate` must stay green; the schedule reaches the audio thread only through `ScheduleExchange`.
 - Parameter IDs (`volume cutoff resonance envmod decay accent drive glide shape engine`), plugin codes (`Gfau`/`Gfb1`) and state schema keys are stable. Add a migration in `StateCodec::decode` when changing the schema.
+- Taste learning: an empty `TasteProfile` must reproduce the factory generator exactly (`Taste.EmptyProfileEqualsFactory`). Tests must never touch the user's real `taste.json`/`favorites.json` (use `GFB_TASTE_FILE` / explicit files).
+- Reference datasets: never commit third-party or user MIDI files (the repo is public). Store only aggregate integers (`src/core/ReferencePriors.h` via `tools/reference_analyzer --emit-priors`). Style cells must be original, never transcriptions of an artist's track.
+- Windows build uses the static MSVC runtime (`CMAKE_MSVC_RUNTIME_LIBRARY`); keep it, CI checks the VST3 imports. The installer is admin-only and installs to Common Files\VST3.
 - Corpus edits: keep grids rotation-unique and inside the feel's density bounds (tests enforce it).
 - Do not claim DAW compatibility without testing; update `docs/DAW_COMPATIBILITY.md`.
 - JUCE is AGPLv3/commercial: see LICENSE-THIRD-PARTY.md before distributing binaries.

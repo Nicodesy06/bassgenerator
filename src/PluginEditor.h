@@ -4,6 +4,7 @@
 #include "PluginProcessor.h"
 #include "ui/BrowserPanel.h"
 #include "ui/DesignSystem.h"
+#include "ui/FeedbackBar.h"
 #include "ui/GeneratorPanel.h"
 #include "ui/PianoRoll.h"
 #include "ui/SynthPanel.h"
@@ -35,6 +36,7 @@ private:
     juce::TooltipWindow tooltips { this, 600 };
     ui::GeneratorPanel generator;
     ui::PianoRoll roll;
+    ui::FeedbackBar feedback;
     ui::ActionBar actions;
     ui::SynthPanel synthPanel;
     ui::BrowserPanel browser;

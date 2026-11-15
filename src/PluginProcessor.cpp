@@ -78,7 +78,11 @@ GrooveForgeProcessor::GrooveForgeProcessor()
     pEngine = apvts.getRawParameterValue ("engine");
 
     favoritesStore = std::make_unique<FavoritesStore>();
-    taste = std::make_unique<TasteStore>();
+    {
+        // GFB_TASTE_FILE lets tests (and power users) point the taste profile elsewhere
+        const auto override = juce::SystemStats::getEnvironmentVariable ("GFB_TASTE_FILE", {});
+        taste = override.isNotEmpty() ? std::make_unique<TasteStore> (juce::File (override)) : std::make_unique<TasteStore>();
+    }
     mididrag::cleanupDragCache (24.0);
 
     // cold start: reproducible but randomly initialised seeds + a valid pattern
@@ -458,7 +462,7 @@ void GrooveForgeProcessor::setUseTaste (bool on) { useTaste = on; bump(); }
 
 int GrooveForgeProcessor::exportLikedDataset (const juce::File& dir)
 {
-    if (! dir.createDirectory()) return 0;
+    if (! dir.createDirectory()) return -1;
     int n = 0;
     for (const auto& p : taste->likedPatterns())
     {

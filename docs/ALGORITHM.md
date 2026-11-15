@@ -1,6 +1,27 @@
-# Generation algorithm (algorithmVersion 1)
+# Generation algorithm (algorithmVersion 3)
 
-No machine learning is used and none is claimed. The engine is an **authored corpus + conditioned generative grammars + heuristic candidate evaluator**, fully deterministic and offline.
+The engine is an **authored corpus + conditioned generative grammars + heuristic candidate evaluator**, fully deterministic and offline. Since v3 it is calibrated on the user's own hand-made basslines and can be steered by **local taste learning** from LIKE / DISLIKE ratings (simple feature statistics, not a neural network).
+
+History: v1 = initial release (0.1.0). v2 (0.2.0) was calibrated on third-party reference packs; the user rejected that sound, so v2 was **withdrawn** and v3 restarts from v1, calibrated only on the user's own MIDI files. Stored projects keep their exact notes regardless of version.
+
+## v3 changes at a glance
+
+- **User priors** (`src/core/ReferencePriors.h`): 16-step onset distribution and interval histogram aggregated from the user's 14 hand-made MIDI files (`tools/reference_analyzer --emit-priors`). Only aggregate integers are stored; the source MIDI files are not in the repository. The evaluator adds `groove_prior` and `interval_prior` components (L1 similarity to these tables) and a `legato` component (sounding ratio 0.55–0.95; user data: 77 %).
+- **Rhythm**: new `extend` mutation (ties a note into the following 1–2 rest steps); longer gates; Sub gate +30 ‰.
+- **Pitch**: more step-wise motion (user data: 43 % 1–2 semitone steps, 2 % octave jumps, mean pitch MIDI 47); Sub roots C2–B2, Acid F2–E3 (`36+pc` / `pc>=5 ? 36+pc : 48+pc`).
+- **Phrase**: weighted templates with more literal repetition (A B A B, A A A A', A A' A A' …) — the user's lines repeat a one-bar idea with small answers (44 % distinct bars).
+- **Corpus**: 81 cells. 701–712 are rhythm cells taken from the user's own files (the user owns them); 801–812 are **original** cells written for the groovy house / tech-house idiom the user named as a reference (warm, swung, rolling, call-and-response). They are not transcriptions of any artist's track.
+- **Chromatic approach notes** (opt-in, `GeneratorSettings::chromatic`, LIBRARY → ADVANCED): on a separate `chromatic` RNG stream, with 300 ‰ chance per bar, one weak-position note directly before a target is replaced by the semitone approach; the target note is locked so the approach always resolves. Off by default; out-of-scale checks treat these notes as intentional.
+
+## Taste learning (src/core/TasteProfile.*, src/state/TasteStore.*)
+
+- Each rating extracts normalised features of the rated pattern: 16-step onset histogram, interval histogram (±12), duration buckets (6), density bucket (4). They are added to the liked or disliked accumulators.
+- `taste::score(p)` = clamp(0.5 + 1.5·(simLike − simDislike), 0, 1), sim = 1 − L1/2 weighted steps 3, intervals 1, durations 1.5, density 1. It enters the evaluator as the `taste` component with weight `10 · confidence`, confidence = min(1, ratings / 8).
+- Archetype weights in the STYLE pool are scaled by `(2+likes)/(2+dislikes)` (clamped 0.15–4×).
+- Liked patterns contribute their first bar as a **learned cell** (max 96, weight 1–9, dislikes decrement). Learned cells join the archetype pool with weight `6 + 3·w`, so the personal dataset grows with every LIKE.
+- Determinism: for a given profile and seeds the output is identical; an empty profile (or TASTE off) reproduces the factory generator bit for bit (`Taste.EmptyProfileEqualsFactory`). Each Pattern records the `tasteRevision` it was generated with.
+- Persistence: `%APPDATA%/GrooveForgeBass/taste.json` (schema 1: profile string, liked patterns ≤ 1000, rated hashes ≤ 4000), atomic write + backup, shared by all instances, never touched by the audio thread. `GFB_TASTE_FILE` overrides the path (tests). A disliked pattern immediately triggers a new generation. LIBRARY → TASTE exports all liked patterns as .mid files.
+- Measured effect (`tests/TasteTests.cpp`): after 12 synthetic ratings the mean taste score of new patterns rises 0.532 → 0.579 and learned cells are used in 39 / 150 generations; a disliked archetype drops from 19 to 5 occurrences in 200.
 
 ## Pipeline
 
@@ -17,7 +38,7 @@ settings + STYLE + VAR
 
 ## 1. Rhythm corpus (src/core/RhythmCorpus.cpp)
 
-57 original one-bar archetypes, 10 fill cells, written in a readable grid (`A` anchor, `X` accent, `x` note, `g` ghost, `o` octave punctuation, `-` hold, `~` hold+slide, `.` rest). Each has primary/secondary feel, family mask (SUB/ACID/both), kick-context fit, contour hint, max swing and a usage note. Distribution per (feel, family) pool: every pool has ≥ 3 entries (test `Corpus.EveryFeelFamilyPoolHasThreeOrMore`); **no two archetypes share the same onset vector under any rotation** (test `Corpus.SizeValidityAndDistinctness`), so the count is not inflated by shifted copies. Onset counts match the primary feel's bounds.
+81 one-bar cells (57 original v1 archetypes, 12 from the user's files, 12 original style cells), 10 fill cells, written in a readable grid (`A` anchor, `X` accent, `x` note, `g` ghost, `o` octave punctuation, `-` hold, `~` hold+slide, `.` rest). Each has primary/secondary feel, family mask (SUB/ACID/both), kick-context fit, contour hint, max swing and a usage note. Distribution per (feel, family) pool: every pool has ≥ 3 entries (test `Corpus.EveryFeelFamilyPoolHasThreeOrMore`); **no two archetypes share the same onset vector under any rotation** (test `Corpus.SizeValidityAndDistinctness`), so the count is not inflated by shifted copies. Onset counts match the primary feel's bounds.
 
 ## 2. Feel profiles (src/core/RhythmGrammar.cpp)
 
@@ -42,7 +63,7 @@ Root and scale are hard constraints: every pitch is a scale member by constructi
 
 ## 4. Phrase (src/core/PhraseComposer.cpp)
 
-Templates chosen by STYLE: 1 bar `A*`; 2 bars `A A'` / `A B`; 4 bars `A A' B F`, `A B A' F`, `A A' A F`; 8 bars `A A' B F A A'' B' F2`, `A A' A B A A' B' F2`, `A B A' F A B' A'' F2`. A is identical in every A bar (structural repetition); A' = ≤1 rhythm op + ≤1 pitch change, A'' ≤2+2; B is the answer (diatonic transposition by +3/−2/+4/−1 steps, diatonic inversion, or a contrasting archetype with the same vocabulary); F replaces the last 4 steps (F2: 8 steps) with a fill cell whose pitches follow its shape (run up to the step below the root, run down from the octave, octave jump, approach, pedal, break). The final note is resolved (root/fifth/approach). Last note never rings over the loop end or slides into the wrap.
+Templates chosen by STYLE with integer weights (`pickTemplateIndex`): 1 bar `A*`; 2 bars `A A'` / `A B`; 4 bars `A A' B F`, `A B A' F`, `A A' A F`, `A B A B`, `A A A A'`, `A A' A A'`; 8 bars also `A B A B A B A B'`, `A A A A' A A A F`, `A A' A A' A A' A F2`, plus 8 bars `A A' B F A A'' B' F2`, `A A' A B A A' B' F2`, `A B A' F A B' A'' F2`. A is identical in every A bar (structural repetition); A' = ≤1 rhythm op + ≤1 pitch change, A'' ≤2+2; B is the answer (diatonic transposition by +3/−2/+4/−1 steps, diatonic inversion, or a contrasting archetype with the same vocabulary); F replaces the last 4 steps (F2: 8 steps) with a fill cell whose pitches follow its shape (run up to the step below the root, run down from the octave, octave jump, approach, pedal, break). The final note is resolved (root/fifth/approach). Last note never rings over the loop end or slides into the wrap.
 
 ## 5. Articulation
 
@@ -50,7 +71,7 @@ Swing delays only odd 16ths by `(swing−50)·4.8` ticks (≤ 76 ticks at 66 %),
 
 ## 6. Evaluation (src/core/PatternEvaluator.cpp)
 
-Hard rejects: invalid, silent, out-of-scale, empty bar, ≥12-step 16th chain. Score = weighted mean of 14 components (density vs feel target, syncopation band, off-beat band, implied-kick collisions, motif recurrence for multi-bar, register span, interval character per family, root anchoring, ending, duration contrast, accent ratio, repetition, anti-machine-gun chain bound, longest rest), weights depend on feel and family. Ties keep the lower candidate index. `pattern_diagnostics --explain STYLE VAR FEEL FAMILY BARS` prints every candidate's components. The score is a proxy; it does not replace listening.
+Hard rejects: invalid, silent, out-of-scale, empty bar, ≥12-step 16th chain. Score = weighted mean of 17 components (+ `taste` when a profile exists) (density vs feel target, syncopation band, off-beat band, implied-kick collisions, motif recurrence for multi-bar, register span, interval character per family, root anchoring, ending, duration contrast, accent ratio, repetition, anti-machine-gun chain bound, longest rest), weights depend on feel and family. Ties keep the lower candidate index. `pattern_diagnostics --explain STYLE VAR FEEL FAMILY BARS` prints every candidate's components. The score is a proxy; it does not replace listening.
 
 ## 7. Seeds and determinism
 
@@ -63,7 +84,8 @@ Hard rejects: invalid, silent, out-of-scale, empty bar, ≥12-step 16th chain. S
 
 ## Limitations
 
-- One harmonic centre (no chord progressions) by design for v1.
+- One harmonic centre (no chord progressions) by design.
+- Taste learning is a statistical bias, not a model of musical meaning; it needs roughly 8–10 ratings to have an audible effect.
 - Microtiming beyond swing is not implemented; default grooves are tight.
 - Rhythmic "kick context" is a prior, not audio analysis.
 - Musical quality has not yet been validated by producer listening tests (protocol in TEST_PLAN.md).

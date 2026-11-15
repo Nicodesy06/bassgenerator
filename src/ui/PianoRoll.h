@@ -41,6 +41,6 @@ private:
     double playhead = -1.0;
     double zoom = 1.0, scroll = 0.0; // horizontal zoom (1..8) and scroll (0..1)
     bool dragStarted = false;
-    juce::Colour noteColour { 0xffffb648 };
+    juce::Colour noteColour { 0xff111111 };
 };
 } // namespace gfb::ui

@@ -26,6 +26,16 @@ jobs:
         shell: pwsh
         run: Get-ChildItem -Recurse "build/windows-x64/GrooveForgeBass_artefacts/Release" | Select-Object FullName, Length | Format-Table -AutoSize | Out-String -Width 300
 
+      - name: VST3 has no Visual C++ runtime dependency (static /MT)
+        shell: pwsh
+        run: |
+          $dll = "build/windows-x64/GrooveForgeBass_artefacts/Release/VST3/GrooveForge Bass.vst3/Contents/x86_64-win/GrooveForge Bass.vst3"
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $dumpbin = Get-ChildItem -Recurse "$vs\VC\Tools\MSVC" -Filter dumpbin.exe | Where-Object { $_.FullName -match 'Hostx64\\x64' } | Select-Object -First 1
+          $deps = & $dumpbin.FullName /dependents $dll | Out-String
+          Write-Host $deps
+          if ($deps -match 'VCRUNTIME|MSVCP|vcruntime|msvcp') { throw "VST3 depends on the VC++ redistributable" }
+
       - name: CTest (unit, statistics, MIDI, scheduler, DSP, state, favorites, VST3 host harness, GUI bindings)
         run: ctest --preset windows-x64-release --output-on-failure
 

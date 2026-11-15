@@ -5,17 +5,18 @@
 namespace gfb
 {
 GrooveForgeEditor::GrooveForgeEditor (GrooveForgeProcessor& p)
-    : AudioProcessorEditor (p), proc (p), generator (p), actions (p), synthPanel (p), browser (p)
+    : AudioProcessorEditor (p), proc (p), generator (p), feedback (p), actions (p), synthPanel (p), browser (p)
 {
     setLookAndFeel (&lnf);
     addAndMakeVisible (generator);
     addAndMakeVisible (roll);
+    addAndMakeVisible (feedback);
     addAndMakeVisible (actions);
     addAndMakeVisible (synthPanel);
     addChildComponent (browser);
     for (auto* l : { &status, &transport })
     {
-        l->setFont (ui::font (12.0f, true));
+        l->setFont (ui::font (12.0f));
         l->setColour (juce::Label::textColourId, ui::colours::textDim);
         addAndMakeVisible (*l);
     }
@@ -32,6 +33,7 @@ GrooveForgeEditor::GrooveForgeEditor (GrooveForgeProcessor& p)
         resized();
     };
     browser.onMessage = [this] (const juce::String& t, bool e) { showMessage (t, e); };
+    feedback.onMessage = [this] (const juce::String& t, bool e) { showMessage (t, e); };
     lastExportDir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
 
     const auto s = proc.getStateSnapshot();
@@ -52,27 +54,36 @@ GrooveForgeEditor::~GrooveForgeEditor()
     setLookAndFeel (nullptr);
 }
 
-void GrooveForgeEditor::paint (juce::Graphics& g) { g.fillAll (ui::colours::bg); }
+void GrooveForgeEditor::paint (juce::Graphics& g)
+{
+    g.fillAll (ui::colours::paper);
+    // footer hairline above status / transport
+    g.setColour (ui::colours::rule);
+    g.fillRect (status.getX(), status.getY() - 3, transport.getRight() - status.getX(), 1);
+}
 
 void GrooveForgeEditor::resized()
 {
-    auto r = getLocalBounds().reduced (8);
+    // Swiss grid: generous outer margin, rows separated by rules, not boxes
+    auto r = getLocalBounds().reduced (24, 16);
     const float h = (float) r.getHeight();
     generator.setBounds (r.removeFromTop (juce::jlimit (74, 96, (int) (h * 0.11f))));
-    r.removeFromTop (6);
+    r.removeFromTop (12);
     auto foot = r.removeFromBottom (18);
-    transport.setBounds (foot.removeFromRight (360));
+    transport.setBounds (foot.removeFromRight (380));
     status.setBounds (foot);
-    r.removeFromBottom (4);
+    r.removeFromBottom (8);
     synthPanel.setBounds (r.removeFromBottom (juce::jlimit (130, 190, (int) (h * 0.22f))));
-    r.removeFromBottom (6);
+    r.removeFromBottom (12);
     actions.setBounds (r.removeFromBottom (46));
-    r.removeFromBottom (6);
+    r.removeFromBottom (2);
     if (drawerOpen)
     {
         browser.setBounds (r.removeFromRight (juce::jlimit (300, 420, r.getWidth() / 3)));
-        r.removeFromRight (6);
+        r.removeFromRight (16);
     }
+    feedback.setBounds (r.removeFromBottom (40));
+    r.removeFromBottom (4);
     roll.setBounds (r);
     proc.setEditorSize (getWidth(), getHeight());
 }
@@ -86,6 +97,7 @@ void GrooveForgeEditor::refreshFromProcessor()
     roll.setPattern (s.pattern);
     roll.setAccentColour (ui::familyColour (s.settings.family == Family::Acid));
     browser.refresh (s);
+    feedback.refresh();
     synthPanel.refresh (s.presetIndex, proc.uiPeak.load());
 }
 
@@ -103,6 +115,7 @@ void GrooveForgeEditor::timerCallback()
     {
         favTick = 0;
         if (proc.favorites().reloadIfChanged()) browser.refreshFavorites(); // another instance changed favorites
+        if (proc.tasteStore().reloadIfChanged()) { feedback.refresh(); browser.refreshTaste(); } // another instance rated
     }
     const double bpm = proc.uiHostBpm.load();
     juce::String t;

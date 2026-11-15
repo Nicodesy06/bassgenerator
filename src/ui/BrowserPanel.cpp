@@ -24,12 +24,14 @@ public:
         const int idx = getNumRows() - 1 - row; // newest first
         const auto& p = owner.last.history[(size_t) idx];
         const bool current = idx == owner.last.historyCursor;
-        g.setColour (selected ? colours::raised : (current ? colours::panel2 : colours::panel));
+        g.setColour (selected ? colours::panel2 : colours::paper);
         g.fillRect (0, 0, w, h);
+        g.setColour (colours::rule);
+        g.fillRect (0, h - 1, w, 1);
         g.setColour (familyColour (p.settings.family == Family::Acid));
-        g.fillRect (0, 2, 3, h - 4);
-        g.setColour (current ? colours::forge : colours::textDim);
-        g.setFont (font (11.0f, true));
+        g.fillRect (0, 7, 6, h - 14);
+        g.setColour (current ? colours::red : colours::textDim);
+        g.setFont (font (11.5f, true));
         g.drawText ("#" + juce::String (idx + 1), 8, 0, 34, h, juce::Justification::centredLeft);
         g.setColour (colours::text);
         g.setFont (font (12.0f));
@@ -50,16 +52,18 @@ public:
     {
         if (row < 0 || row >= getNumRows()) return;
         const auto& f = owner.favs[(size_t) row];
-        g.setColour (selected ? colours::raised : colours::panel);
+        g.setColour (selected ? colours::panel2 : colours::paper);
         g.fillRect (0, 0, w, h);
+        g.setColour (colours::rule);
+        g.fillRect (0, h - 1, w, 1);
         g.setColour (familyColour (f.pattern.settings.family == Family::Acid));
-        g.fillRect (0, 2, 3, h - 4);
+        g.fillRect (0, 8, 6, 6);
         g.setColour (colours::text);
         g.setFont (font (13.0f, true));
-        g.drawText (f.name, 8, 2, w - 12, h / 2, juce::Justification::centredLeft, true);
+        g.drawText (f.name, 12, 2, w - 16, h / 2, juce::Justification::centredLeft, true);
         g.setColour (colours::textDim);
         g.setFont (font (11.0f));
-        g.drawText (describePattern (f.pattern), 8, h / 2, w - 12, h / 2 - 2, juce::Justification::centredLeft, true);
+        g.drawText (describePattern (f.pattern), 12, h / 2, w - 12, h / 2 - 2, juce::Justification::centredLeft, true);
     }
     void listBoxItemDoubleClicked (int row, const juce::MouseEvent&) override { load (row); }
     void returnKeyPressed (int row) override { load (row); }
@@ -154,12 +158,56 @@ BrowserPanel::BrowserPanel (GrooveForgeProcessor& p) : proc (p)
     info.setJustificationType (juce::Justification::topLeft);
     resetBtn.setTooltip ("Reset generator settings, locks and synth parameters to defaults (seeds and history are kept)");
     resetBtn.onClick = [this] { proc.resetToDefaults(); };
-    for (auto* c : std::initializer_list<juce::Component*> { &swing, &kick, &previewBpm, &swingLabel, &kickLabel, &bpmLabel, &info, &resetBtn })
+    chromatic.setTooltip ("Chromatic approach notes: occasionally places an off-scale passing note a semitone before a target note (weak positions only, max one per bar). Off by default.");
+    chromatic.onClick = [this] {
+        if (updating) return;
+        auto s = proc.getStateSnapshot().settings;
+        s.chromatic = chromatic.getToggleState();
+        proc.setSettings (s);
+    };
+    for (auto* c : std::initializer_list<juce::Component*> { &swing, &kick, &previewBpm, &swingLabel, &kickLabel, &bpmLabel, &info, &resetBtn, &chromatic })
         advPage.addAndMakeVisible (*c);
 
-    tabs.addTab ("HISTORY", colours::panel, &historyPage, false);
-    tabs.addTab ("FAVORITES", colours::panel, &favPage, false);
-    tabs.addTab ("ADVANCED", colours::panel, &advPage, false);
+    // Taste: local learning from LIKE / DISLIKE
+    tasteInfo.setFont (font (12.5f));
+    tasteInfo.setJustificationType (juce::Justification::topLeft);
+    tasteStats.setFont (font (28.0f, true));
+    tasteStats.setJustificationType (juce::Justification::topLeft);
+    tasteExport.setTooltip ("Write every pattern you liked as a .mid file into a folder (your personal dataset)");
+    tasteExport.onClick = [this] {
+        chooser = std::make_unique<juce::FileChooser> ("Export liked patterns to folder", juce::File::getSpecialLocation (juce::File::userDocumentsDirectory));
+        juce::Component::SafePointer<BrowserPanel> safe (this);
+        chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories, [safe] (const juce::FileChooser& fc) {
+            if (safe == nullptr) return;
+            const auto dir = fc.getResult();
+            if (dir == juce::File()) return;
+            const int n = safe->proc.exportLikedDataset (dir);
+            if (safe->onMessage) safe->onMessage (n >= 0 ? "Exported " + juce::String (n) + " liked patterns to " + dir.getFullPathName() : juce::String ("Export failed"), n < 0);
+        });
+    };
+    tasteReveal.setTooltip ("Reveal taste.json (your learned profile) in the file browser");
+    tasteReveal.onClick = [this] {
+        const auto f = proc.tasteStore().getFile();
+        if (f.existsAsFile()) f.revealToUser();
+        else if (f.getParentDirectory().createDirectory()) f.getParentDirectory().revealToUser();
+    };
+    tasteReset.setTooltip ("Forget every rating and start learning from scratch (cannot be undone; a backup is kept as taste.bak.json)");
+    tasteReset.onClick = [this] {
+        juce::Component::SafePointer<BrowserPanel> safe (this);
+        const auto opts = juce::MessageBoxOptions::makeOptionsOkCancel (juce::MessageBoxIconType::NoIcon, "Reset taste", "Forget all LIKE / DISLIKE ratings?", "Reset", "Cancel", this);
+        juce::AlertWindow::showAsync (opts, [safe] (int r) {
+            if (safe == nullptr || r != 1) return;
+            safe->proc.tasteStore().reset();
+            safe->refreshTaste();
+        });
+    };
+    for (auto* c : std::initializer_list<juce::Component*> { &tasteStats, &tasteInfo, &tasteExport, &tasteReveal, &tasteReset })
+        tastePage.addAndMakeVisible (*c);
+
+    tabs.addTab ("HISTORY", colours::paper, &historyPage, false);
+    tabs.addTab ("FAVORITES", colours::paper, &favPage, false);
+    tabs.addTab ("TASTE", colours::paper, &tastePage, false);
+    tabs.addTab ("ADVANCED", colours::paper, &advPage, false);
     tabs.setTabBarDepth (30);
     tabs.setOutline (0);
     addAndMakeVisible (tabs);
@@ -181,6 +229,23 @@ void BrowserPanel::refresh (const state::InstanceState& s)
     swing.setValue (s.settings.swing == kAutoSwing ? 49 : s.settings.swing, juce::dontSendNotification);
     kick.setSelectedId ((int) s.settings.kickContext + 1, juce::dontSendNotification);
     previewBpm.setValue (s.previewBpm, juce::dontSendNotification);
+    chromatic.setToggleState (s.settings.chromatic, juce::dontSendNotification);
+    refreshTaste();
+}
+
+void BrowserPanel::refreshTaste()
+{
+    const auto t = proc.tasteStore().profile();
+    const int n = t.likes + t.dislikes;
+    tasteStats.setText (juce::String (t.likes) + " / " + juce::String (t.dislikes), juce::dontSendNotification);
+    juce::String txt;
+    txt << "Liked / disliked patterns.\n\n"
+        << (n == 0 ? juce::String ("No ratings yet. Use LIKE and DISLIKE under the piano roll: every rating updates the generator immediately.")
+                   : "Learning strength: " + juce::String (juce::roundToInt (taste::confidence (t) * 100.0)) + " %   Learned rhythm cells: " + juce::String ((int) t.cells.size()))
+        << "\n\nEverything stays on this computer and is shared by all GrooveForge instances:\n"
+        << proc.tasteStore().getFile().getFullPathName()
+        << "\n\nTurn TASTE off (next to LIKE) to hear the factory generator.";
+    tasteInfo.setText (txt, juce::dontSendNotification);
 }
 
 void BrowserPanel::refreshFavorites()
@@ -192,13 +257,13 @@ void BrowserPanel::refreshFavorites()
 
 void BrowserPanel::paint (juce::Graphics& g)
 {
-    g.setColour (colours::panel);
-    g.fillRoundedRectangle (getLocalBounds().toFloat(), 8.0f);
+    g.setColour (colours::ink);
+    g.fillRect (0, 0, 1, getHeight());
 }
 
 void BrowserPanel::resized()
 {
-    tabs.setBounds (getLocalBounds().reduced (6));
+    tabs.setBounds (getLocalBounds().withTrimmedLeft (14));
     const auto page = tabs.getLocalBounds().withTrimmedTop (30);
     historyList.setBounds (page.withZeroOrigin().reduced (4));
     auto f = page.withZeroOrigin().reduced (4);
@@ -216,9 +281,18 @@ void BrowserPanel::resized()
     a.removeFromTop (8);
     bpmLabel.setBounds (a.removeFromTop (20));
     previewBpm.setBounds (a.removeFromTop (28));
+    a.removeFromTop (10);
+    chromatic.setBounds (a.removeFromTop (26));
     a.removeFromTop (12);
     resetBtn.setBounds (a.removeFromTop (30));
     a.removeFromTop (12);
     info.setBounds (a.removeFromTop (90));
+    auto t = page.withZeroOrigin().reduced (10);
+    tasteStats.setBounds (t.removeFromTop (36));
+    auto tb = t.removeFromBottom (30);
+    const int tw = tb.getWidth() / 3;
+    for (auto* b : { &tasteExport, &tasteReveal, &tasteReset }) b->setBounds (tb.removeFromLeft (tw).reduced (2, 0));
+    t.removeFromBottom (8);
+    tasteInfo.setBounds (t);
 }
 } // namespace gfb::ui

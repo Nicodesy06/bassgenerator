@@ -59,6 +59,13 @@ int main (int argc, char** argv)
     juce::ScopedJuceInitialiser_GUI init;
     juce::File snapDir;
     if (argc > 1) { snapDir = juce::File (juce::String (argv[1])); snapDir.createDirectory(); }
+    // never touch the user's real taste profile
+    const auto tasteFile = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("gfb_ui_taste_" + juce::String (juce::Time::currentTimeMillis()) + ".json");
+   #if JUCE_WINDOWS
+    _putenv_s ("GFB_TASTE_FILE", tasteFile.getFullPathName().toRawUTF8());
+   #else
+    setenv ("GFB_TASTE_FILE", tasteFile.getFullPathName().toRawUTF8(), 1);
+   #endif
     {
         GrooveForgeProcessor proc;
         proc.prepareToPlay (48000, 256);
@@ -129,6 +136,30 @@ int main (int argc, char** argv)
         for (int i = 0; i < 400; ++i) { proc.processBlock (buf, midi); acc += buf.getRMSLevel (0, 0, 256); }
         check (acc / 400 > 0.005, "preview mode produces audio without host transport");
         button (*ed, "PREVIEW")->triggerClick();
+
+        // LIKE / DISLIKE feed the local taste profile
+        check (proc.tasteStore().getFile() == tasteFile, "taste store uses the test file (GFB_TASTE_FILE)");
+        auto* likeBtn = button (*ed, "LIKE");
+        auto* dislikeBtn = button (*ed, "DISLIKE");
+        check (likeBtn != nullptr && dislikeBtn != nullptr && button (*ed, "TASTE") != nullptr, "LIKE / DISLIKE / TASTE buttons present");
+        if (likeBtn) likeBtn->triggerClick();
+        pump (100);
+        check (proc.tasteStore().profile().likes == 1 && proc.tasteStore().alreadyRated (proc.getPattern()), "LIKE records a rating for the current pattern");
+        check (tasteFile.existsAsFile(), "LIKE persists the taste profile to disk");
+        const auto beforeDislike = proc.getPattern().hash;
+        if (dislikeBtn) dislikeBtn->triggerClick();
+        pump (100);
+        check (proc.tasteStore().profile().likes == 1, "DISLIKE on an already rated pattern does not count twice");
+        check (proc.getPattern().hash != beforeDislike, "DISLIKE moves on to a new pattern");
+        if (dislikeBtn) dislikeBtn->triggerClick();
+        pump (100);
+        check (proc.tasteStore().profile().dislikes == 1, "DISLIKE records a negative rating");
+        button (*ed, "TASTE")->triggerClick();
+        pump (20);
+        check (! proc.isUsingTaste(), "TASTE toggle switches taste learning off");
+        button (*ed, "TASTE")->triggerClick();
+        pump (20);
+        check (proc.isUsingTaste(), "TASTE toggle switches it back on");
 
         // favorites (uses a temp copy: do not touch the user's real favorites)
         // (FavoritesStore tests cover the file logic; here we only check the button path exists)
@@ -213,5 +244,7 @@ int main (int argc, char** argv)
         ed.reset();
     }
     std::printf ("\n%d failure(s)\n", failures);
+    tasteFile.deleteFile();
+    tasteFile.getSiblingFile ("taste.bak.json").deleteFile();
     return failures == 0 ? 0 : 1;
 }

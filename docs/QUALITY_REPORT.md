@@ -16,45 +16,50 @@ Status values: PASS (measured/observed), FAIL, PARTIAL, UNTESTED. Numbers below 
 | **Windows installer (Inno Setup .exe)** | GitHub Actions windows-2022 | **PASS**: silent install (all users), installed VST3 passes the host harness, silent uninstall removes the plug-in | release workflow runs 43538121670, 43545579683 |
 | pluginval locally | dev container | not run (downloading and executing the prebuilt binary was not permitted in this environment) | – |
 
-## 2. Automated tests (Linux, this session)
+## 2. Automated tests (Linux, this session, 0.3.0)
 
-18/18 CTest entries passed on Linux (`reports/ctest_linux.txt`) and on Windows CI; `gfb_tests`: 48 cases, 3 698 620 checks, 0 failures.
+20/20 CTest entries passed on Linux (incl. new suites `Taste` and `TasteStore`, and UI tests for LIKE / DISLIKE / TASTE). Windows/macOS results: see the CI runs for the 0.3.0 commit.
 
-## 3. Generator statistics
+## 3. Generator statistics (algorithmVersion 3)
 
-Source: `reports/diagnostics_summary.md` (4 200 patterns: 2 families × 7 feel settings × 300, bars cycling 1/2/4/8, random keys/scales/seeds).
+Source: `reports/diagnostics_summary.md` (4 200 patterns: 2 families × 7 feel settings × 300, bars cycling 1/2/4/8, random keys/scales/seeds, factory generator = no taste profile).
 
 | Metric | Value |
 |---|---|
 | Invalid events / silent / out-of-scale / illegal overlaps | 0 / 0 / 0 / 0 |
-| Fallbacks, candidate rejections | 0, 0 |
-| Same settings → identical notes & hash | 500/500 |
-| 10 000 random cases (all options, octave ±3, kick contexts) | 0 invalid, 0 out-of-scale, 0 silent |
-| Exact duplicates (480 seeds × feel × family, 4 bars) | 0 |
-| VAR-only change: onset Jaccard / note overlap | 0.92 / 0.91 (output changed in 300/300) |
-| STYLE change: onset Jaccard / note overlap | 0.40 / 0.24 |
-| Generation time p50 / p95 / p99 / max | 0.11 / 0.31 / 0.38 / 0.53 ms (Xeon 2.1 GHz) |
-| Endings resolved (400 phrases) | 400/400 |
-| 4/8-bar phrases with repetition but not frozen | 188/200 |
+| Same settings → identical notes & hash | 100 % |
+| VAR-only change: onset Jaccard / note overlap | 0.96 / 0.95 |
+| STYLE change: onset Jaccard / note overlap | 0.37 / 0.19 |
+| Taste learning (12 synthetic ratings, `Taste.*`) | mean taste score 0.532 → 0.579; learned cells used in 39/150; disliked archetype 19 → 5 / 200 |
 
-Feel/family means (selected features):
+Feel/family means (selected features; mean note length in 16ths, sounding = fraction of the loop with a note sounding):
 
-| Group | onsets/bar | syncopation | off-8th | short-note | sounding | longest rest (16ths) | max 16th chain | distinct pitches | step ratio |
-|---|---|---|---|---|---|---|---|---|---|
-| SUB Sparse | 3.22 | 0.63 | 0.51 | 0.46 | 0.29 | 7.55 | 1.40 | 3.25 | 0.07 |
-| SUB Balanced | 5.98 | 0.61 | 0.53 | 0.55 | 0.46 | 3.56 | 2.27 | 3.65 | 0.06 |
-| SUB Busy | 9.95 | 0.57 | 0.33 | 0.71 | 0.60 | 2.20 | 3.56 | 3.89 | 0.08 |
-| SUB Rolling | 9.32 | 0.71 | 0.39 | 0.89 | 0.45 | 2.66 | 3.19 | 3.60 | 0.05 |
-| SUB Syncopated | 6.07 | 0.71 | 0.36 | 0.47 | 0.56 | 3.58 | 2.19 | 3.56 | 0.08 |
-| SUB Stabby | 5.12 | 0.52 | 0.45 | 0.95 | 0.13 | 5.63 | 1.61 | 3.85 | 0.06 |
-| ACID Sparse | 3.50 | 0.56 | 0.50 | 0.52 | 0.28 | 7.54 | 1.57 | 4.18 | 0.37 |
-| ACID Balanced | 6.12 | 0.56 | 0.52 | 0.58 | 0.42 | 3.58 | 2.26 | 4.80 | 0.36 |
-| ACID Busy | 10.16 | 0.55 | 0.32 | 0.83 | 0.46 | 2.41 | 3.66 | 5.12 | 0.47 |
-| ACID Rolling | 9.04 | 0.61 | 0.39 | 0.83 | 0.43 | 2.55 | 3.13 | 5.14 | 0.37 |
-| ACID Syncopated | 6.08 | 0.66 | 0.44 | 0.49 | 0.52 | 3.40 | 2.21 | 4.81 | 0.40 |
-| ACID Stabby | 5.51 | 0.57 | 0.33 | 0.92 | 0.12 | 5.34 | 1.74 | 4.80 | 0.45 |
+| Group | onsets/bar | syncopation | off-8th | mean len | sounding | longest rest | distinct pitches | step ratio | octave jumps | distinct bars |
+|---|---|---|---|---|---|---|---|---|---|---|
+| SUB Sparse | 3.42 | 0.58 | 0.50 | 2.14 | 0.45 | 5.62 | 2.82 | 0.20 | 0.03 | 0.51 |
+| SUB Balanced | 6.05 | 0.55 | 0.44 | 1.70 | 0.63 | 2.70 | 3.65 | 0.24 | 0.07 | 0.51 |
+| SUB Busy | 9.96 | 0.55 | 0.30 | 1.17 | 0.73 | 1.63 | 3.94 | 0.25 | 0.03 | 0.49 |
+| SUB Rolling | 9.35 | 0.71 | 0.40 | 1.12 | 0.64 | 2.05 | 3.75 | 0.22 | 0.04 | 0.50 |
+| SUB Syncopated | 6.00 | 0.66 | 0.35 | 1.86 | 0.69 | 2.90 | 3.72 | 0.27 | 0.04 | 0.51 |
+| SUB Stabby | 4.99 | 0.57 | 0.40 | 0.45 | 0.14 | 5.36 | 3.39 | 0.17 | 0.05 | 0.51 |
+| ACID Sparse | 3.58 | 0.46 | 0.52 | 2.21 | 0.48 | 5.21 | 3.37 | 0.52 | 0.03 | 0.50 |
+| ACID Balanced | 6.08 | 0.54 | 0.42 | 1.72 | 0.65 | 2.64 | 3.99 | 0.48 | 0.03 | 0.50 |
+| ACID Busy | 10.11 | 0.54 | 0.33 | 1.01 | 0.63 | 1.82 | 4.44 | 0.52 | 0.02 | 0.50 |
+| ACID Rolling | 8.79 | 0.59 | 0.41 | 1.20 | 0.65 | 1.86 | 4.52 | 0.46 | 0.05 | 0.49 |
+| ACID Syncopated | 5.96 | 0.63 | 0.37 | 1.85 | 0.68 | 2.76 | 3.80 | 0.48 | 0.03 | 0.49 |
+| ACID Stabby | 5.47 | 0.59 | 0.31 | 0.40 | 0.14 | 4.94 | 3.77 | 0.48 | 0.02 | 0.51 |
 
-Reading: density ladder Sparse < Balanced/Syncopated/Stabby < Rolling < Busy; Stabby has the shortest notes and lowest sounding ratio; Syncopated/Rolling the highest syncopation; Sparse the longest rests; ACID uses ~5–6× more scale steps, more distinct pitches and slides (0.06–0.09 vs ≤0.01) than SUB. Provisional thresholds and their rationale are the assertions in `tests/PatternMetricsTests.cpp`. Known weak spot: SUB Rolling vs SUB Busy differ mainly by syncopation/short-note ratio, not density.
+Comparison with the user's 14 hand-made files (`tools/reference_analyzer`, aggregates only):
+
+| Metric | user files | v1 (0.1.0) typical | v3 |
+|---|---|---|---|
+| mean note length (16ths) | 2.1 | 0.7–1.4 | 1.0–2.2 (Stabby 0.4 by design) |
+| sounding ratio | 0.77 | 0.29–0.60 | 0.45–0.73 |
+| 1–2 semitone steps | 0.43 | 0.05–0.08 SUB / 0.36–0.47 ACID | 0.17–0.27 SUB / 0.46–0.52 ACID |
+| octave jumps | 0.02 | 0.08–0.19 | 0.02–0.07 |
+| distinct bars | 0.44 | 0.74 | 0.49–0.51 |
+
+SUB is deliberately kept more root-centred than the user's files (a sub line with 43 % steps stops sounding like a sub); taste learning moves it further if the user's ratings ask for it. Known weak spot: SUB Rolling vs SUB Busy differ mainly by syncopation, not density.
 
 Golden demos: 16 patterns (`reports/demos/demos.md`, `.mid` committed, `.wav` reproducible with `render_demo`). Listening status: **not yet auditioned** (protocol in TEST_PLAN.md; 48-clip blind set reproducible with `render_demo --audition 48`).
 

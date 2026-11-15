@@ -14,7 +14,7 @@ namespace gfb::ui
 {
 juce::String describePattern (const Pattern& p);
 
-/** Drawer with History (last 64 exact snapshots), Favorites (global, persistent) and Advanced groove options. */
+/** Drawer with History (last 64 exact snapshots), Favorites (global, persistent), Taste (local learning) and Advanced options. */
 class BrowserPanel : public juce::Component
 {
 public:
@@ -22,6 +22,7 @@ public:
     ~BrowserPanel() override;
     void refresh (const state::InstanceState& s);
     void refreshFavorites();
+    void refreshTaste();
     void paint (juce::Graphics&) override;
     void resized() override;
     std::function<void (const juce::String&, bool)> onMessage;
@@ -31,7 +32,7 @@ private:
     class FavoritesModel;
     GrooveForgeProcessor& proc;
     juce::TabbedComponent tabs { juce::TabbedButtonBar::TabsAtTop };
-    juce::Component historyPage, favPage, advPage;
+    juce::Component historyPage, favPage, advPage, tastePage;
     juce::ListBox historyList, favList;
     std::unique_ptr<HistoryModel> historyModel;
     std::unique_ptr<FavoritesModel> favModel;
@@ -40,6 +41,10 @@ private:
     juce::Label swingLabel, kickLabel, bpmLabel, info;
     juce::ComboBox kick;
     juce::TextButton resetBtn { "RESET TO DEFAULTS" };
+    juce::ToggleButton chromatic { "Chromatic approach notes" };
+    juce::Label tasteStats, tasteInfo;
+    juce::TextButton tasteExport { "EXPORT DATASET" }, tasteReveal { "SHOW FILE" }, tasteReset { "RESET TASTE" };
+    std::unique_ptr<juce::FileChooser> chooser;
     bool updating = false;
     state::InstanceState last;
     std::vector<Favorite> favs;

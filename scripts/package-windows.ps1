@@ -21,7 +21,7 @@ Copy-Item -Recurse $vst3 (Join-Path $stage "GrooveForge Bass.vst3")
 if (Test-Path $exe) { Copy-Item $exe $stage }
 Copy-Item README.md, LICENSE-THIRD-PARTY.md $stage
 Copy-Item docs\QUALITY_REPORT.md, docs\DAW_COMPATIBILITY.md $stage
-Copy-Item scripts\install-user-windows.ps1 $stage
+Copy-Item scripts\install-vst3-windows.ps1 $stage
 
 $zip = Join-Path "dist" "$name.zip"
 if (Test-Path $zip) { Remove-Item -Force $zip }

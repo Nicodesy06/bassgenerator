@@ -91,15 +91,27 @@ void PianoRoll::paint (juce::Graphics& g)
         const int pc = m % 12;
         const bool inKey = theory::inScale (root, scale, pc);
         const bool isRoot = ((pc - root) % 12 + 12) % 12 == 0;
-        g.setColour (isRoot ? noteColour.withAlpha (0.10f) : (inKey ? panel2 : bg.brighter (0.02f)));
-        g.fillRect ((float) r.getX(), y, (float) r.getWidth(), rowH);
-        // keyboard column
+        // out-of-key rows get a quiet tint, the root row a hairline
+        if (! inKey)
+        {
+            g.setColour (panel2);
+            g.fillRect ((float) r.getX(), y, (float) r.getWidth(), rowH);
+        }
+        if (isRoot)
+        {
+            g.setColour (rule);
+            g.fillRect ((float) r.getX(), y + rowH - 1.0f, (float) r.getWidth(), 1.0f);
+        }
+        // keyboard column: black keys as short ink bars
         const bool black = pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10;
-        g.setColour (black ? juce::Colour (0xff1a1d24) : juce::Colour (0xff2b303b));
-        g.fillRect (0.0f, y, (float) kKeysW - 2.0f, rowH - 0.5f);
+        if (black)
+        {
+            g.setColour (ink.withAlpha (0.85f));
+            g.fillRect ((float) kKeysW - 12.0f, y + 1.0f, 8.0f, rowH - 2.0f);
+        }
         if (isRoot || pc == 0)
         {
-            g.setColour (isRoot ? noteColour : textDim);
+            g.setColour (isRoot ? ink : textDim);
             g.setFont (font (juce::jlimit (8.0f, 11.0f, rowH * 0.85f), isRoot));
             g.drawText (juce::String (theory::noteName (m, root, scale)), juce::Rectangle<float> (2.0f, y, (float) kKeysW - 4.0f, rowH),
                         juce::Justification::centredLeft);
@@ -112,11 +124,11 @@ void PianoRoll::paint (juce::Graphics& g)
         const float x = tickToX ((double) t);
         if (x < (float) r.getX() - 1 || x > (float) r.getRight() + 1) continue;
         const bool bar = t % kTicksPerBar == 0, beat = t % kPPQ == 0;
-        g.setColour (bar ? outline.brighter (0.35f) : (beat ? outline : grid));
+        g.setColour (bar ? ink : (beat ? rule : grid));
         g.drawVerticalLine ((int) x, (float) r.getY() - (bar ? (float) kRulerH : 0.0f), (float) getHeight());
         if (bar && t < len)
         {
-            g.setColour (textDim);
+            g.setColour (ink);
             g.setFont (font (11.0f, true));
             g.drawText (juce::String (t / kTicksPerBar + 1), juce::Rectangle<float> (x + 4.0f, 0.0f, 40.0f, (float) kRulerH), juce::Justification::centredLeft);
         }
@@ -128,15 +140,16 @@ void PianoRoll::paint (juce::Graphics& g)
     {
         const auto& n = pattern.notes[i];
         auto b = noteBounds (n).reduced (0.5f, 1.0f);
-        const float velA = 0.45f + 0.55f * (float) n.velocity / 127.0f;
+        const float velA = 0.55f + 0.45f * (float) n.velocity / 127.0f;
         auto c = noteColour.withAlpha (velA);
-        if ((int) i == hoveredIndex) c = c.brighter (0.3f);
+        if ((int) i == hoveredIndex) c = focus;
         g.setColour (c);
-        g.fillRoundedRectangle (b, 2.5f);
+        g.fillRect (b);
         if (n.accent)
         {
-            g.setColour (juce::Colours::white.withAlpha (0.85f));
-            g.drawRoundedRectangle (b, 2.5f, 1.4f);
+            // accent: a red bar on top of the note
+            g.setColour (noteColour == red ? ink : red);
+            g.fillRect (b.withHeight (juce::jmax (2.0f, b.getHeight() * 0.28f)));
         }
         if (n.slideToNext && i + 1 < pattern.notes.size())
         {
@@ -144,23 +157,23 @@ void PianoRoll::paint (juce::Graphics& g)
             juce::Path p;
             p.startNewSubPath (b.getRight() - 2.0f, b.getCentreY());
             p.quadraticTo (nb.getX(), b.getCentreY(), nb.getX() + 3.0f, nb.getCentreY());
-            g.setColour (juce::Colours::white.withAlpha (0.8f));
-            g.strokePath (p, juce::PathStrokeType (1.6f));
+            g.setColour (noteColour);
+            g.strokePath (p, juce::PathStrokeType (1.4f));
         }
         // velocity lane
         const auto va = velocityArea();
         const float vh = (float) va.getHeight() * (float) n.velocity / 127.0f;
         const float vx = tickToX ((double) n.startTick);
-        g.setColour (n.accent ? juce::Colours::white.withAlpha (0.85f) : noteColour.withAlpha (0.7f));
-        g.fillRect (vx, (float) va.getBottom() - vh, 3.0f, vh);
+        g.setColour (n.accent ? red : ink);
+        g.fillRect (vx, (float) va.getBottom() - vh, 2.0f, vh);
     }
     g.restoreState();
     // velocity lane frame
-    g.setColour (outline);
+    g.setColour (rule);
     g.drawHorizontalLine (velocityArea().getY() - 2, (float) kKeysW, (float) getWidth());
     g.setColour (textDim);
-    g.setFont (font (9.0f, true));
-    g.drawText ("VEL", juce::Rectangle<int> (0, velocityArea().getY(), kKeysW - 4, kVelH), juce::Justification::centred);
+    g.setFont (font (10.0f));
+    g.drawText ("Vel", juce::Rectangle<int> (0, velocityArea().getY(), kKeysW - 4, kVelH), juce::Justification::centred);
 
     // playhead
     if (playhead >= 0.0)
@@ -168,7 +181,7 @@ void PianoRoll::paint (juce::Graphics& g)
         const float x = tickToX (playhead);
         if (x >= (float) r.getX() && x <= (float) r.getRight())
         {
-            g.setColour (forge);
+            g.setColour (red);
             g.fillRect (x - 1.0f, 0.0f, 2.0f, (float) getHeight());
         }
     }
@@ -183,18 +196,20 @@ void PianoRoll::paint (juce::Graphics& g)
                        + "  tick " + juce::String (n.startTick) + "  len " + juce::String (n.durationTicks) + "  vel " + juce::String (n.velocity)
                        + (n.accent ? "  ACC" : "") + (n.slideToNext ? "  SLIDE" : "");
         auto box = juce::Rectangle<int> (r.getRight() - 330, r.getY() + 4, 326, 20);
-        g.setColour (raised.withAlpha (0.92f));
-        g.fillRoundedRectangle (box.toFloat(), 4.0f);
-        g.setColour (text);
+        g.setColour (paper);
+        g.fillRect (box);
+        g.setColour (ink);
+        g.drawRect (box, 1);
         g.setFont (font (12.0f));
         g.drawText (txt, box.reduced (6, 0), juce::Justification::centredLeft);
     }
     // drag hint
     g.setColour (textDim.withAlpha (0.8f));
     g.setFont (font (11.0f));
-    g.drawText (juce::String (juce::CharPointer_UTF8 ("\xe2\x87\xb2 drag to DAW")), getLocalBounds().removeFromTop (kRulerH).withTrimmedRight (6), juce::Justification::centredRight);
-    g.setColour (outline);
-    g.drawRect (getLocalBounds(), 1);
+    g.drawText (juce::String ("Drag to DAW"), getLocalBounds().removeFromTop (kRulerH).withTrimmedRight (6), juce::Justification::centredRight);
+    g.setColour (ink);
+    g.fillRect (0, 0, getWidth(), 1);
+    g.fillRect (0, getHeight() - 1, getWidth(), 1);
 }
 
 void PianoRoll::mouseMove (const juce::MouseEvent& e)
