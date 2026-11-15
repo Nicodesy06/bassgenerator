@@ -15,7 +15,7 @@ constexpr int kPPQ               = 960;
 constexpr int kTicksPerSixteenth = kPPQ / 4;           // 240
 constexpr int kStepsPerBar       = 16;                 // 4/4, 16th grid
 constexpr int kTicksPerBar       = kPPQ * 4;           // 3840
-constexpr uint32_t kAlgorithmVersion = 2;
+constexpr uint32_t kAlgorithmVersion = 1;
 constexpr int kMaxNotesPerPattern    = 512;
 /** A note flagged slideToNext may overlap the following (different-pitch)
     note by at most this many ticks: this is how legato/glide is encoded in

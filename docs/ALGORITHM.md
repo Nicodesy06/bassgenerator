@@ -1,6 +1,6 @@
-# Generation algorithm (algorithmVersion 2)
+# Generation algorithm (algorithmVersion 1)
 
-No machine learning model is used and none is claimed. Since algorithmVersion 2 the hand-authored grammar is calibrated against **aggregate statistics** of licensed reference basslines (see "Reference priors"). The engine is an **authored corpus + conditioned generative grammars + heuristic candidate evaluator**, fully deterministic and offline.
+No machine learning is used and none is claimed. The engine is an **authored corpus + conditioned generative grammars + heuristic candidate evaluator**, fully deterministic and offline.
 
 ## Pipeline
 
@@ -25,12 +25,12 @@ Engineering hypotheses (not Bassurito numbers):
 
 | Feel | onsets/bar | gate short/long ‰ | swing % | sync target ‰ | off-8th target ‰ | max internal rest |
 |---|---|---|---|---|---|---|
-| Sparse | 2–6 (3) | 900/960 | 52 | 250–750 | 300–850 | 13 |
-| Balanced | 4–9 (6) | 880/950 | 54 | 250–650 | 300–750 | 10 |
-| Busy | 8–13 (10) | 820/930 | 52 | 250–650 | 150–600 | 4 |
-| Rolling | 6–12 (9) | 850/940 | 56 | 450–850 | 300–750 | 5 |
-| Syncopated | 4–10 (6) | 900/960 | 54 | 500–950 | 150–700 | 9 |
-| Stabby | 3–9 (5) | 520/600 | 52 | 250–800 | 150–700 | 10 |
+| Sparse | 2–6 (3) | 700/920 | 52 | 250–750 | 300–850 | 13 |
+| Balanced | 4–9 (6) | 650/880 | 54 | 250–650 | 300–750 | 10 |
+| Busy | 8–13 (10) | 540/840 | 52 | 250–650 | 150–600 | 4 |
+| Rolling | 6–12 (9) | 600/860 | 56 | 450–850 | 300–750 | 5 |
+| Syncopated | 4–10 (6) | 720/920 | 54 | 500–950 | 150–700 | 9 |
+| Stabby | 3–9 (5) | 330/450 | 52 | 250–800 | 150–700 | 10 |
 
 Random = weighted choice from the STYLE stream (Balanced 30, Rolling 20, Syncopated 20, others 10). Mutation operators with hard bounds: remove/add onset (never onto a kick beat; Sparse/Stabby forbid adjacent onsets), split, merge (not in Stabby), anticipation (move a beat onset one 16th earlier, accented), delayed root entry, accent shift, ghost note, octave punctuation (max 1/bar SUB, 2 ACID), bar-end pickup, slide toggle (SUB max one glide per bar). A failed or out-of-bounds mutation leaves the cell untouched. Each feel weights operators differently; ACID boosts slide/accent ops, SUB boosts octave punctuation.
 
@@ -52,27 +52,12 @@ Swing delays only odd 16ths by `(swing−50)·4.8` ticks (≤ 76 ticks at 66 %),
 
 Hard rejects: invalid, silent, out-of-scale, empty bar, ≥12-step 16th chain. Score = weighted mean of 14 components (density vs feel target, syncopation band, off-beat band, implied-kick collisions, motif recurrence for multi-bar, register span, interval character per family, root anchoring, ending, duration contrast, accent ratio, repetition, anti-machine-gun chain bound, longest rest), weights depend on feel and family. Ties keep the lower candidate index. `pattern_diagnostics --explain STYLE VAR FEEL FAMILY BARS` prints every candidate's components. The score is a proxy; it does not replace listening.
 
-## 6b. Reference priors (algorithmVersion 2)
-
-Source: 153 unique licensed MIDI basslines supplied by the user (Weapon Sounds "House" and "Tech House Bassline MIDI", 100 files: royalty-free, files may not be redistributed; THM "Free Tech House Basslines Vol.3", 48 files; 5 other files). The files are **not** in the repository. `tools/reference_analyzer <dir>` measures them with the same metrics as the generator and writes only aggregates (`reports/reference/reference_vs_generator.md`); `--emit-priors` produces the 2 × (16 + 25) integers in `src/core/ReferencePriors.h`: onset probability per 16th step and melodic-interval distribution for a four-on-the-floor context (the 100 house/tech-house files) and a broken/open context (the rest). No reference note sequence or pattern is stored or reproduced.
-
-How they are used:
-- Evaluator component `groove_prior` (weight 3, 2 for Sparse/Stabby): mean reference probability of the candidate's onset steps relative to the most likely step (Open context blends it 50 %).
-- Evaluator component `interval_prior` (weight SUB 2, ACID 1): mean reference probability of its intervals.
-- Kick-beat collision tolerance lowered from 12 % to 5 % (references: ~0–1 % of onsets on beats 2–4).
-- `rhythm::clearKickBeats`: in four-on-the-floor context 65 % of style candidates (and fills, except their downbeat) move notes off beats 2–4 (anticipate by a 16th or drop) and let a downbeat anchor enter late on the "and"; the prior-weighted evaluator decides which candidate wins.
-- Fuller gates (references fill their slots: 64 % of notes last one 16th, 22 % two), ghost notes no longer clipped to half a step.
-- Pitch transition weights re-balanced (SUB: fewer octave/fifth jumps, more repeats and steps; ACID: fewer consecutive steps), larger SUB vocabulary, repeat cap 3 (pedal 5).
-- Registers moved up (reference mean MIDI pitch ≈ 50).
-
-Results are in QUALITY_REPORT.md §3b.
-
 ## 7. Seeds and determinism
 
 - PRNG: SplitMix64 seeding + xoshiro256**; bounded integers by Lemire multiply-shift with exact rejection; weighted choice with **integer weights only**. No `<random>` distributions.
 - Domain separation: `deriveSeed(seed, "style-core" | "style-candidate"#i | "answer" | "var-candidate"#j | "expression")`; the VAR base is `var ^ mix64(style)`.
 - Floating point in the evaluator uses only + − × ÷ and comparisons (no libm transcendental), compiled without FP contraction (`-ffp-contract=off` on GCC/Clang — required on arm64 where Clang would otherwise emit FMA — and MSVC `/fp:precise`).
-- Golden fixture (regenerated for v2): 16 exact hashes (`tests/golden_hashes.inc`) recorded on Linux/GCC x86-64 and checked on Windows/MSVC x64 and macOS/Apple Clang arm64 + x86-64 in CI. (The first macOS run caught a mismatch on arm64 caused by FMA contraction; fixed by `-ffp-contract=off`.)
+- Golden fixture: 16 exact hashes (`tests/golden_hashes.inc`) recorded on Linux/GCC x86-64 and checked on Windows/MSVC x64 and macOS/Apple Clang arm64 + x86-64 in CI. (The first macOS run caught a mismatch on arm64 caused by FMA contraction; fixed by `-ffp-contract=off`.)
 - Semantics (measured, 500 pairs): changing only VAR keeps 0.92 onset Jaccard / 0.91 note overlap; changing STYLE drops to 0.40 / 0.24; VAR changes the output in 300/300 cases (`Generator.VarPreservesStructureStyleChangesConcept`).
 - Roll: GENERATE = new STYLE+VAR unless locked; NEW STYLE / NEW VAR = one seed; RANDOMISE = every unlocked setting with club weighting (minor modes favoured, bars 4 most likely, octave −1…+1). New seeds are drawn from 1…999 999 for readability; any uint64 can be typed (decimal or 0x hex, overflow rejected).
 

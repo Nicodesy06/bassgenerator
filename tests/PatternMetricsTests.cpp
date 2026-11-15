@@ -77,7 +77,7 @@ TEST_CASE (Metrics, FeelsAreStatisticallyDistinct)
         CHECK (sy.longR > st.longR);
         // rolling: offbeat bounce and ghost/short chains
         CHECK (ro.offbeat > bu.offbeat);
-        CHECK (ro.meanDur < ba.meanDur - 0.2); // short-note chains (v2 gates are fuller, see QUALITY_REPORT)
+        CHECK (ro.shortR > ba.shortR + 0.15); // short-note chains
         CHECK (ro.chain > sp.chain);
     }
 }

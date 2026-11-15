@@ -13,7 +13,6 @@ build/tests/gfb_tests Generator.                             # one suite (substr
 build/tools/pattern_diagnostics --count 300 --out reports    # statistics report
 build/tools/pattern_diagnostics --explain 1234 5 ROLLING ACID 4
 build/tools/render_demo --out reports/demos                  # golden demos (.mid/.wav)
-build/tools/reference_analyzer <licensed-midi-dir> --out reports/reference [--emit-priors tmp.inc]  # compare with reference basslines
 ```
 
 Windows: `cmake --preset windows-x64-release`, `cmake --build --preset windows-x64-release`, `ctest --preset windows-x64-release`, or `scripts/*.ps1`.
@@ -25,7 +24,6 @@ Windows: `cmake --preset windows-x64-release`, `cmake --build --preset windows-x
 - Any change that alters generator output: bump `kAlgorithmVersion`, regenerate `tests/golden_hashes.inc` with `pattern_diagnostics --golden`, rerun diagnostics and update `docs/QUALITY_REPORT.md`. Stored projects keep their exact notes regardless.
 - Audio thread: no allocation, locks, I/O, logging. `Realtime.AudioPathDoesNotAllocate` must stay green; the schedule reaches the audio thread only through `ScheduleExchange`.
 - Parameter IDs (`volume cutoff resonance envmod decay accent drive glide shape engine`), plugin codes (`Gfau`/`Gfb1`) and state schema keys are stable. Add a migration in `StateCodec::decode` when changing the schema.
-- Reference MIDI files (third-party packs) must never be committed (public repo, licences forbid redistribution). Only aggregate statistics may be stored (`src/core/ReferencePriors.h`, `reports/reference/`).
 - Corpus edits: keep grids rotation-unique and inside the feel's density bounds (tests enforce it).
 - Do not claim DAW compatibility without testing; update `docs/DAW_COMPATIBILITY.md`.
 - JUCE is AGPLv3/commercial: see LICENSE-THIRD-PARTY.md before distributing binaries.

@@ -97,10 +97,10 @@ Pattern renderBars (const std::vector<BarRealisation>& bars, const ArticulationP
         const auto& x = t[i];
         const int64_t nextStart = i + 1 < t.size() ? t[i + 1].start : total;
         int gate = x.lenSteps == 1 ? fp.gateShort : fp.gateLong;
-        if (ap.family == Family::Sub) gate = std::min (980, gate + 40);
+        if (ap.family == Family::Sub) gate = std::min (960, gate + 60);
         else if (x.lenSteps == 1) gate = std::max (250, gate - 40);
         int64_t dur = (int64_t) x.lenSteps * kTicksPerSixteenth * gate / 1000;
-        if (x.role == Role::Ghost) dur = std::min<int64_t> (dur, kTicksPerSixteenth * 3 / 4);
+        if (x.role == Role::Ghost) dur = std::min<int64_t> (dur, kTicksPerSixteenth / 2);
         NoteEvent e;
         e.startTick = x.start;
         e.midiNote = (uint8_t) x.midi;

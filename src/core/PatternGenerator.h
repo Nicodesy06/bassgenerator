@@ -17,7 +17,7 @@ namespace gfb
 {
 struct GenerationOptions
 {
-    int styleCandidates = 16;
+    int styleCandidates = 12;
     int varCandidates = 16;
     bool collectLog = false;
 };

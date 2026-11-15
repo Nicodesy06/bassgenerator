@@ -138,21 +138,7 @@ ParsedMidi readSmf (const std::vector<uint8_t>& b)
             tick += dv;
             if (pos >= end) return fail ("truncated event");
             uint8_t st = b[pos];
-            if (st & 0x80) { ++pos; if (st < 0xF0) status = st; } else if (status == 0) return fail ("running status without status"); else st = status;
-            if (st == 0xF0 || st == 0xF7) // sysex: skip (length-prefixed)
-            {
-                uint32_t len = 0;
-                for (int i = 0; i < 4 && pos < end; ++i)
-                {
-                    const uint8_t c = b[pos++];
-                    len = (len << 7) | (c & 0x7F);
-                    if (! (c & 0x80)) break;
-                }
-                if (pos + len > end) return fail ("truncated sysex");
-                pos += len;
-                status = 0;
-                continue;
-            }
+            if (st & 0x80) { ++pos; status = st; } else st = status;
             if (st == 0xFF)
             {
                 if (pos + 2 > end) return fail ("truncated meta");

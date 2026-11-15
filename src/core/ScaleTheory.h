@@ -35,7 +35,7 @@ ScalePitch normalise (ScaleType s, ScalePitch p) noexcept;
 ScalePitch step (ScaleType s, ScalePitch p, int steps) noexcept;
 
 /** Reference MIDI note of the root for a family before octave transposition:
-    SUB roots sit in C2..B2 (MIDI 36..47), ACID roots in F2..E3 (41..52). */
+    SUB roots sit in G1..F#2 (MIDI 31..42), ACID roots in C2..B2 (36..47). */
 int referenceRootMidi (int rootPc, Family f) noexcept;
 
 /** Consistent root display names (sharp/flat choice is fixed per root). */
