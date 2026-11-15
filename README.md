@@ -12,7 +12,7 @@ Generatore di linee di basso + sintetizzatore di basso integrato, plugin **VST3 
 - **Due seed**: `STYLE` (idea: archetipo, motivo, frase) e `VAR` (variazioni limitate della stessa idea). Modificabili con trascinamento (Shift = fine), rotella, frecce, doppio clic per digitare, tasto destro copia/incolla.
 - **Lock** per ogni impostazione e per i seed; **History** delle ultime 64 generazioni (snapshot esatti); **Favorites** globali e persistenti, condivisi tra istanze.
 - **Piano roll** che mostra esattamente il MIDI esportato (swing incluso), con playhead, velocity, accenti e slide.
-- **Grafica in stile svizzero**: carta, nero, un solo rosso, tipografia Helvetica/Arial, griglia e filetti al posto dei riquadri.
+- **Grafica in stile svizzero**, tema **scuro** (predefinito) o **chiaro**: un solo rosso come accento, tipografia Helvetica/Arial, griglia e filetti al posto dei riquadri. Il pulsante **DARK** in basso a destra cambia tema; la scelta vale per tutte le finestre e viene ricordata.
 - **Sintetizzatore** monofonico/legato con due motori: **SUB** (sinusoide pulita + strato armonico filtrato) e **ACID** (saw/square in ladder 24 dB risonante con accent e slide). Otto macro: Volume, Cutoff, Resonance, Env Mod, Decay, Accent, Drive, Glide (+ Shape). 8 preset originali.
 - **Esporta MIDI** (.mid SMF tipo 0, PPQ 960, tempo e 4/4) e **trascina** il pattern direttamente su una traccia del DAW. Opzione **MIDI OUT** VST3 (dipende dall'host).
 - Sync al transport del DAW oppure **PREVIEW** a transport fermo.

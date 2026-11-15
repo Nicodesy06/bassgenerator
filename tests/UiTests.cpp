@@ -61,10 +61,13 @@ int main (int argc, char** argv)
     if (argc > 1) { snapDir = juce::File (juce::String (argv[1])); snapDir.createDirectory(); }
     // never touch the user's real taste profile
     const auto tasteFile = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("gfb_ui_taste_" + juce::String (juce::Time::currentTimeMillis()) + ".json");
+    const auto settingsFile = tasteFile.getSiblingFile ("gfb_ui_settings_" + juce::String (juce::Time::currentTimeMillis()) + ".xml");
    #if JUCE_WINDOWS
     _putenv_s ("GFB_TASTE_FILE", tasteFile.getFullPathName().toRawUTF8());
+    _putenv_s ("GFB_SETTINGS_FILE", settingsFile.getFullPathName().toRawUTF8());
    #else
     setenv ("GFB_TASTE_FILE", tasteFile.getFullPathName().toRawUTF8(), 1);
+    setenv ("GFB_SETTINGS_FILE", settingsFile.getFullPathName().toRawUTF8(), 1);
    #endif
     {
         GrooveForgeProcessor proc;
@@ -161,6 +164,24 @@ int main (int argc, char** argv)
         pump (20);
         check (proc.isUsingTaste(), "TASTE toggle switches it back on");
 
+        // theme: dark by default, DARK toggle switches palette and persists the preference
+        check (ui::isDarkTheme(), "dark theme is the default");
+        auto* themeBtn = button (*ed, "DARK");
+        check (themeBtn != nullptr, "theme toggle present");
+        if (themeBtn)
+        {
+            snapshot (*ed, snapDir, "editor_dark_1180x760");
+            const auto darkBg = ui::colours::paper;
+            themeBtn->triggerClick();
+            pump (100);
+            check (! ui::isDarkTheme() && ui::colours::paper != darkBg && ui::colours::paper.getBrightness() > 0.8f, "theme toggle switches to the light palette");
+            check (! ui::loadDarkThemePreference(), "light theme preference saved");
+            snapshot (*ed, snapDir, "editor_light_1180x760");
+            themeBtn->triggerClick();
+            pump (100);
+            check (ui::isDarkTheme() && ui::colours::paper == darkBg && ui::loadDarkThemePreference(), "theme toggle switches back to dark");
+        }
+
         // favorites (uses a temp copy: do not touch the user's real favorites)
         // (FavoritesStore tests cover the file logic; here we only check the button path exists)
         check (button (*ed, "+ FAV") != nullptr, "favorite button present");
@@ -245,6 +266,7 @@ int main (int argc, char** argv)
     }
     std::printf ("\n%d failure(s)\n", failures);
     tasteFile.deleteFile();
+    settingsFile.deleteFile();
     tasteFile.getSiblingFile ("taste.bak.json").deleteFile();
     return failures == 0 ? 0 : 1;
 }

@@ -39,7 +39,104 @@ juce::Font monoFont (float h, bool b)
 
 juce::Colour familyColour (bool acid) { return acid ? colours::acid : colours::sub; }
 
-ForgeLookAndFeel::ForgeLookAndFeel()
+namespace
+{
+bool darkTheme = false;
+}
+
+void applyTheme (bool dark)
+{
+    using namespace colours;
+    darkTheme = dark;
+    if (dark)
+    {
+        paper = juce::Colour (0xff111111);
+        panel2 = juce::Colour (0xff1c1c1b);
+        raised = juce::Colour (0xff2a2a28);
+        ink = juce::Colour (0xffedece7);
+        rule = juce::Colour (0xff3a3a37);
+        grid = juce::Colour (0xff232322);
+        textDim = juce::Colour (0xff8c8b86);
+        red = juce::Colour (0xffff2233);
+        focus = juce::Colour (0xff5b8cff);
+    }
+    else
+    {
+        paper = juce::Colour (0xfff4f3ef);
+        panel2 = juce::Colour (0xffeae9e4);
+        raised = juce::Colour (0xffe0dfd9);
+        ink = juce::Colour (0xff111111);
+        rule = juce::Colour (0xffcfcec8);
+        grid = juce::Colour (0xffe3e2dc);
+        textDim = juce::Colour (0xff7d7c77);
+        red = juce::Colour (0xffe3001b);
+        focus = juce::Colour (0xff0050ff);
+    }
+    bg = panel = paper;
+    outline = text = sub = ink;
+    forge = acid = danger = red;
+}
+
+bool isDarkTheme() noexcept { return darkTheme; }
+
+namespace
+{
+juce::File settingsFile()
+{
+    const auto override = juce::SystemStats::getEnvironmentVariable ("GFB_SETTINGS_FILE", {});
+    if (override.isNotEmpty()) return juce::File (override);
+    return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("GrooveForgeBass").getChildFile ("settings.xml");
+}
+} // namespace
+
+bool loadDarkThemePreference()
+{
+    if (auto xml = juce::parseXML (settingsFile()))
+        if (xml->hasTagName ("GrooveForgeSettings")) return xml->getBoolAttribute ("darkTheme", true);
+    return true; // default: dark
+}
+
+void saveDarkThemePreference (bool dark)
+{
+    const auto f = settingsFile();
+    if (! f.getParentDirectory().createDirectory()) return;
+    juce::XmlElement xml ("GrooveForgeSettings");
+    if (auto old = juce::parseXML (f)) xml = *old; // keep unknown attributes
+    xml.setTagName ("GrooveForgeSettings");
+    xml.setAttribute ("darkTheme", dark);
+    xml.writeTo (f);
+}
+
+std::vector<juce::Colour> paletteSnapshot()
+{
+    using namespace colours;
+    return { paper, panel2, raised, ink, rule, grid, textDim, red, focus };
+}
+
+void remapComponentColours (juce::Component& root, const std::vector<std::pair<juce::Colour, juce::Colour>>& oldToNew)
+{
+    auto& props = root.getProperties();
+    for (int i = 0; i < props.size(); ++i)
+    {
+        const auto name = props.getName (i).toString();
+        if (! name.startsWith ("jcclr_")) continue; // JUCE stores Component::setColour overrides as jcclr_<id>
+        const juce::Colour c ((juce::uint32) (int) props.getValueAt (i)); // stored as (int) ARGB
+        if (c.getAlpha() == 0) continue;                                  // transparent overrides stay
+        for (const auto& [from, to] : oldToNew)
+            if (c.withAlpha ((juce::uint8) 255) == from)
+            {
+                props.set (props.getName (i), (int) to.withAlpha (c.getAlpha()).getARGB());
+                break;
+            }
+    }
+    root.colourChanged();
+    for (auto* child : root.getChildren()) remapComponentColours (*child, oldToNew);
+    root.repaint();
+}
+
+ForgeLookAndFeel::ForgeLookAndFeel() { refreshColours(); }
+
+void ForgeLookAndFeel::refreshColours()
 {
     using namespace colours;
     setColour (juce::ResizableWindow::backgroundColourId, paper);
@@ -298,7 +395,7 @@ void Segmented::paint (juce::Graphics& g)
         auto seg = juce::Rectangle<float> (r.getX() + w * (float) i, r.getY(), w, r.getHeight());
         if (i == selected)
         {
-            g.setColour (accent);
+            g.setColour (useInk ? ink : accent);
             g.fillRect (seg);
         }
         g.setColour (i == selected ? paper : ink);

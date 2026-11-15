@@ -10,24 +10,37 @@ namespace gfb::ui
 {
 namespace colours
 {
-inline const juce::Colour paper { 0xfff4f3ef };   // background
-inline const juce::Colour bg = paper;
-inline const juce::Colour panel = paper;
-inline const juce::Colour panel2 { 0xffeae9e4 };  // quiet fill (hover, scale rows)
-inline const juce::Colour raised { 0xffe0dfd9 };
-inline const juce::Colour ink { 0xff111111 };     // text, rules, primary
-inline const juce::Colour outline = ink;
-inline const juce::Colour rule { 0xffcfcec8 };    // hairlines
-inline const juce::Colour grid { 0xffe3e2dc };
-inline const juce::Colour text = ink;
-inline const juce::Colour textDim { 0xff7d7c77 };
-inline const juce::Colour red { 0xffe3001b };     // the one accent
-inline const juce::Colour forge = red;
-inline const juce::Colour sub = ink;
-inline const juce::Colour acid = red;
-inline const juce::Colour danger = red;
-inline const juce::Colour focus { 0xff0050ff };
+// Mutable palette: applyTheme() rewrites these values (light = paper/ink,
+// dark = ink/paper). Read them at paint time, never cache them.
+inline juce::Colour paper { 0xfff4f3ef };   // background
+inline juce::Colour bg = paper;
+inline juce::Colour panel = paper;
+inline juce::Colour panel2 { 0xffeae9e4 };  // quiet fill (hover, out-of-key rows)
+inline juce::Colour raised { 0xffe0dfd9 };
+inline juce::Colour ink { 0xff111111 };     // text, rules, primary
+inline juce::Colour outline = ink;
+inline juce::Colour rule { 0xffcfcec8 };    // hairlines
+inline juce::Colour grid { 0xffe3e2dc };
+inline juce::Colour text = ink;
+inline juce::Colour textDim { 0xff7d7c77 };
+inline juce::Colour red { 0xffe3001b };     // the one accent
+inline juce::Colour forge = red;
+inline juce::Colour sub = ink;
+inline juce::Colour acid = red;
+inline juce::Colour danger = red;
+inline juce::Colour focus { 0xff0050ff };
 } // namespace colours
+
+/** Switches the palette (dark = true is the default since 0.3). */
+void applyTheme (bool dark);
+bool isDarkTheme() noexcept;
+/** Global UI preference stored in <app data>/GrooveForgeBass/settings.xml. */
+bool loadDarkThemePreference();
+void saveDarkThemePreference (bool dark);
+/** Replaces per-component colour overrides that still hold an old palette value. */
+void remapComponentColours (juce::Component& root, const std::vector<std::pair<juce::Colour, juce::Colour>>& oldToNew);
+/** Snapshot of the palette, in a fixed order (used to build remap tables). */
+std::vector<juce::Colour> paletteSnapshot();
 
 /** Grotesque UI font (Helvetica Neue / Arial / Liberation Sans). */
 juce::Font font (float height, bool bold = false);
@@ -38,6 +51,8 @@ class ForgeLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     ForgeLookAndFeel();
+    /** Re-reads the palette after applyTheme(). */
+    void refreshColours();
     juce::Typeface::Ptr getTypefaceForFont (const juce::Font&) override;
     void drawLinearSlider (juce::Graphics&, int x, int y, int w, int h, float pos, float minPos, float maxPos,
                            juce::Slider::SliderStyle, juce::Slider&) override;
@@ -78,7 +93,7 @@ public:
     Segmented (juce::StringArray items);
     void setSelected (int index, bool notify);
     int getSelected() const noexcept { return selected; }
-    void setAccent (juce::Colour c) { accent = c; repaint(); }
+    void setAccent (juce::Colour c) { accent = c; useInk = false; repaint(); }
     std::function<void (int)> onChange;
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
@@ -89,7 +104,8 @@ public:
 private:
     juce::StringArray items;
     int selected = 0;
-    juce::Colour accent = colours::ink;
+    juce::Colour accent;
+    bool useInk = true; // default accent follows the theme's ink
 };
 
 /** Caption above a control: small, grey, sentence case. */

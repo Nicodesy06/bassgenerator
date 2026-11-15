@@ -21,6 +21,11 @@ GrooveForgeEditor::GrooveForgeEditor (GrooveForgeProcessor& p)
         addAndMakeVisible (*l);
     }
     transport.setJustificationType (juce::Justification::centredRight);
+    themeBtn.setClickingTogglesState (true);
+    themeBtn.setToggleState (ui::isDarkTheme(), juce::dontSendNotification);
+    themeBtn.setTooltip ("Dark theme on/off (saved for all GrooveForge windows)");
+    themeBtn.onClick = [this] { setDarkTheme (themeBtn.getToggleState()); };
+    addAndMakeVisible (themeBtn);
 
     roll.onExternalDrag = [this] { startExternalDrag(); };
     actions.onDragStart = [this] { startExternalDrag(); };
@@ -59,7 +64,7 @@ void GrooveForgeEditor::paint (juce::Graphics& g)
     g.fillAll (ui::colours::paper);
     // footer hairline above status / transport
     g.setColour (ui::colours::rule);
-    g.fillRect (status.getX(), status.getY() - 3, transport.getRight() - status.getX(), 1);
+    g.fillRect (status.getX(), status.getY() - 3, themeBtn.getRight() - status.getX(), 1);
 }
 
 void GrooveForgeEditor::resized()
@@ -69,7 +74,9 @@ void GrooveForgeEditor::resized()
     const float h = (float) r.getHeight();
     generator.setBounds (r.removeFromTop (juce::jlimit (74, 96, (int) (h * 0.11f))));
     r.removeFromTop (12);
-    auto foot = r.removeFromBottom (18);
+    auto foot = r.removeFromBottom (20);
+    themeBtn.setBounds (foot.removeFromRight (52));
+    foot.removeFromRight (12);
     transport.setBounds (foot.removeFromRight (380));
     status.setBounds (foot);
     r.removeFromBottom (8);
@@ -86,6 +93,24 @@ void GrooveForgeEditor::resized()
     r.removeFromBottom (4);
     roll.setBounds (r);
     proc.setEditorSize (getWidth(), getHeight());
+}
+
+void GrooveForgeEditor::setDarkTheme (bool dark)
+{
+    if (dark == ui::isDarkTheme()) return;
+    const auto before = ui::paletteSnapshot();
+    ui::applyTheme (dark);
+    const auto after = ui::paletteSnapshot();
+    std::vector<std::pair<juce::Colour, juce::Colour>> map;
+    for (size_t i = 0; i < before.size(); ++i) map.push_back ({ before[i], after[i] });
+    ui::remapComponentColours (*this, map); // explicit per-component colours (labels, primary buttons...)
+    lnf.refreshColours();
+    sendLookAndFeelChange();
+    synthPanel.retheme();
+    refreshFromProcessor();
+    themeBtn.setToggleState (dark, juce::dontSendNotification);
+    ui::saveDarkThemePreference (dark);
+    repaint();
 }
 
 void GrooveForgeEditor::refreshFromProcessor()

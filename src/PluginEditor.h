@@ -30,8 +30,11 @@ private:
     void startExternalDrag();
     void exportWithChooser();
     void addFavorite();
+    void setDarkTheme (bool dark);
 
     GrooveForgeProcessor& proc;
+    // applies the saved theme before the look-and-feel and the panels read the palette
+    struct ThemeInit { ThemeInit() { ui::applyTheme (ui::loadDarkThemePreference()); } } themeInit;
     ui::ForgeLookAndFeel lnf;
     juce::TooltipWindow tooltips { this, 600 };
     ui::GeneratorPanel generator;
@@ -41,6 +44,7 @@ private:
     ui::SynthPanel synthPanel;
     ui::BrowserPanel browser;
     juce::Label status, transport;
+    juce::TextButton themeBtn { "DARK" };
     std::unique_ptr<juce::FileChooser> chooser;
     juce::File lastExportDir;
     uint32_t seenVersion = 0;

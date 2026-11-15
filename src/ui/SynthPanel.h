@@ -16,6 +16,8 @@ public:
     explicit SynthPanel (GrooveForgeProcessor& p);
     ~SynthPanel() override;
     void refresh (int presetIndex, float peak);
+    /** Re-applies engine-dependent colours after a theme switch. */
+    void retheme() { if (engineAttachment) engineAttachment->sendInitialUpdate(); }
     void paint (juce::Graphics&) override;
     void resized() override;
 

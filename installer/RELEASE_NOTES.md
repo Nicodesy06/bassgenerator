@@ -19,7 +19,7 @@ Sostituisce la 0.2.0: il generatore calibrato sui pacchetti di riferimento è st
   - Il tasto **TASTE** spegne l'apprendimento.
   - In LIBRARY → TASTE trovi statistiche, l'esportazione dei pattern piaciuti come `.mid` e l'azzeramento del profilo.
 - **Note cromatiche di avvicinamento** (opzionale, LIBRARY → ADVANCED).
-- **Nuova grafica in stile svizzero**: carta, nero e un solo rosso, tipografia Helvetica/Arial, cursori lineari, griglia con filetti.
+- **Nuova grafica in stile svizzero** con tema scuro (predefinito) e chiaro, pulsante DARK in basso a destra: un solo rosso come accento, tipografia Helvetica/Arial, cursori lineari, griglia con filetti.
 - **Installazione VST3 su Windows corretta**:
   - il plug-in va sempre in `C:\Program Files\Common Files\VST3`;
   - l'opzione "solo per me", che usava una cartella ignorata da molti DAW, è stata rimossa e la vecchia copia viene cancellata;
