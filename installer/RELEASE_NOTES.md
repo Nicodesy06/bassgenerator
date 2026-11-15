@@ -1,8 +1,13 @@
-## GrooveForge Bass 0.3.0 — versione preliminare
+## GrooveForge Bass 0.3.1 — versione preliminare
 
-Sostituisce la 0.2.0: il generatore calibrato sui pacchetti di riferimento è stato ritirato.
+### Novità della 0.3.1
+- **Cursore Complexity** (0–100 %) accanto a Feel: decide quante note ha la linea dentro il feel scelto.
+  - 50 % = densità naturale del feel (stesso risultato della 0.3.0).
+  - Più alto = più note e più movimento; più basso = meno note e più spazio.
+  - Esempio misurato, SUB Balanced: circa 4,5 note per battuta a 0 %, 5,9 a 50 %, 8,2 a 100 %.
+  - Viene salvato con il progetto, nella History e nei Favorites.
 
-### Novità
+### Dalla 0.3.0 (sostituisce la 0.2.0, il cui generatore è stato ritirato)
 - **Generatore v3**: ripartito dalla 0.1.0 e calibrato solo sulle tue bassline fatte a mano. Rispetto alla 0.1.0:
   - note più lunghe e legate;
   - più movimento per gradi vicini (1–2 semitoni), pochi salti d'ottava;
@@ -34,9 +39,9 @@ Generatore di linee di basso + sintetizzatore SUB/ACID. VST3 per Windows e macOS
 
 | Sistema | File | Contenuto |
 |---|---|---|
-| Windows 10/11 x64 | `GrooveForgeBass-0.3.0-win64-setup.exe` | Installer (amministratore): VST3 in `C:\Program Files\Common Files\VST3` + app standalone, con disinstallazione |
-| Windows 10/11 x64 | `GrooveForgeBass-0.3.0-win64.zip` | Stessi file senza installer (script `install-vst3-windows.ps1` incluso) |
-| macOS 11+ (Apple Silicon + Intel) | `GrooveForgeBass-0.3.0-macos-universal.dmg` | Installer `.pkg` con scelta VST3 / Audio Unit / app, guida e script di disinstallazione |
+| Windows 10/11 x64 | `GrooveForgeBass-0.3.1-win64-setup.exe` | Installer (amministratore): VST3 in `C:\Program Files\Common Files\VST3` + app standalone, con disinstallazione |
+| Windows 10/11 x64 | `GrooveForgeBass-0.3.1-win64.zip` | Stessi file senza installer (script `install-vst3-windows.ps1` incluso) |
+| macOS 11+ (Apple Silicon + Intel) | `GrooveForgeBass-0.3.1-macos-universal.dmg` | Installer `.pkg` con scelta VST3 / Audio Unit / app, guida e script di disinstallazione |
 
 I file `.sha256` contengono le impronte SHA-256 per verificare i download.
 

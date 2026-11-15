@@ -21,6 +21,8 @@ constexpr int kMinOctave = -3, kMaxOctave = 3;
 constexpr int kAutoSwing = -1;
 constexpr int kMinSwing = 50, kMaxSwing = 66;
 
+inline constexpr int kNeutralComplexity = 50;
+
 struct GeneratorSettings
 {
     int root = 9;                                  // pitch class 0..11 (9 = A)
@@ -34,6 +36,7 @@ struct GeneratorSettings
     KickContext kickContext = KickContext::FourOnFloor;
     int swing = kAutoSwing;                        // -1 = feel default, else 50..66 (%)
     bool chromatic = false;                        // labelled chromatic embellishment mode (approach notes)
+    int complexity = kNeutralComplexity;           // 0..100: note density inside the feel's bounds (50 = feel default)
 
     bool operator== (const GeneratorSettings&) const = default;
 };

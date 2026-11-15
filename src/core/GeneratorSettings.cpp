@@ -34,6 +34,7 @@ GeneratorSettings sanitise (GeneratorSettings s) noexcept
     s.octave = std::clamp (s.octave, kMinOctave, kMaxOctave);
     if ((int) s.kickContext >= kNumKickContexts) s.kickContext = KickContext::FourOnFloor;
     if (s.swing != kAutoSwing) s.swing = std::clamp (s.swing, kMinSwing, kMaxSwing);
+    s.complexity = std::clamp (s.complexity, 0, 100);
     return s;
 }
 

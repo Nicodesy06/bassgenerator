@@ -67,6 +67,45 @@ std::string_view toString (Mutation m) noexcept
 
 const FeelProfile& feelProfile (Feel f) noexcept { return kProfiles[(size_t) f % kNumFeels]; }
 
+FeelProfile withComplexity (const FeelProfile& base, int complexity) noexcept
+{
+    FeelProfile fp = base;
+    const int c = std::clamp (complexity, 0, 100) - 50; // -50..+50
+    if (c == 0) return fp;
+    // integer arithmetic only (cross-platform determinism)
+    if (c > 0)
+    {
+        fp.targetOnsets = base.targetOnsets + (base.maxOnsets + 2 - base.targetOnsets) * c / 50;
+        fp.maxOnsets = base.maxOnsets + 2 * c / 50;                       // up to +2 notes per bar
+        fp.minOnsets = base.minOnsets + (fp.targetOnsets - base.minOnsets) * c / 75;
+        fp.maxRestSteps = std::max (2, base.maxRestSteps - (base.maxRestSteps - 2) * c / 75);
+    }
+    else
+    {
+        const int d = -c;
+        fp.targetOnsets = base.targetOnsets - (base.targetOnsets - std::max (2, base.minOnsets - 1)) * d / 50;
+        fp.minOnsets = std::max (2, base.minOnsets - d / 50);             // down to -1 note per bar
+        fp.maxOnsets = base.maxOnsets - (base.maxOnsets - fp.targetOnsets) * d / 75;
+        fp.maxRestSteps = std::min (14, base.maxRestSteps + 4 * d / 50);
+    }
+    fp.minOnsets = std::clamp (fp.minOnsets, 2, 15);
+    fp.maxOnsets = std::clamp (fp.maxOnsets, fp.minOnsets, 16);
+    fp.targetOnsets = std::clamp (fp.targetOnsets, fp.minOnsets, fp.maxOnsets);
+    auto scale = [&] (Mutation m, int pctAt50) {
+        auto& w = fp.mutationWeights[(size_t) m];
+        w = std::max (0, w + w * pctAt50 * std::abs (c) / 5000);
+    };
+    const int dir = c > 0 ? 1 : -1;
+    scale (Mutation::AddOnset, 150 * dir);
+    scale (Mutation::SplitNote, 150 * dir);
+    scale (Mutation::GhostNote, 80 * dir);
+    scale (Mutation::RemoveOnset, -60 * dir);
+    scale (Mutation::MergeNotes, -60 * dir);
+    scale (Mutation::Extend, -60 * dir);
+    if (c > 0) fp.maxStyleMutations = base.maxStyleMutations + c / 25;   // more variation when complex
+    return fp;
+}
+
 namespace rhythm
 {
 RhythmCell parseGrid (std::string_view g)

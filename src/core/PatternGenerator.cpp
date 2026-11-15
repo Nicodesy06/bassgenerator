@@ -154,7 +154,7 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
     // ------------------------------------------------------------- STYLE layer
     Rng styleRng (deriveSeed (s.styleSeed, "style-core"));
     const Feel feel = resolveFeel (s.feel, styleRng);
-    const FeelProfile& fp = feelProfile (feel);
+    const FeelProfile fp = withComplexity (feelProfile (feel), s.complexity);
     rep.resolvedFeel = feel;
 
     // personal corpus from the taste profile (string_views point into opts.taste, alive for this call)
@@ -179,6 +179,17 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
     if (pool.empty()) // cannot happen with the shipped corpus (tested), defensive only
     {
         for (const auto& a : rhythmCorpus()) { pool.push_back (&a); poolW.push_back (1); }
+    }
+    if (s.complexity != kNeutralComplexity)
+    {
+        // Complexity: prefer archetypes whose onset count is near the adjusted target
+        const int span = std::max (1, fp.maxOnsets - fp.minOnsets);
+        for (size_t i = 0; i < pool.size(); ++i)
+        {
+            const int n = rhythm::onsetCount (rhythm::parseGrid (pool[i]->grid));
+            const int dist = std::abs (n - fp.targetOnsets);
+            poolW[i] *= std::max (1, 6 - dist * 6 / span);
+        }
     }
     const RhythmArchetype& arch = *pool[(size_t) styleRng.pickWeighted (poolW.data(), (int) poolW.size())];
 
@@ -208,8 +219,8 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
     const int swing = effectiveSwing (s, feel, arch.maxSwing);
 
     ArticulationParams ap { feel, s.family, s.root, s.scale, s.octave, swing };
-    EvalContext coreEval { feel, s.family, s.kickContext, false, opts.taste };
-    EvalContext fullEval { feel, s.family, s.kickContext, true, opts.taste };
+    EvalContext coreEval { feel, s.family, s.kickContext, false, opts.taste, &fp };
+    EvalContext fullEval { feel, s.family, s.kickContext, true, opts.taste, &fp };
 
     auto finishMeta = [&] (Pattern& p) {
         p.settings = s;

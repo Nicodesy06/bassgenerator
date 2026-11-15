@@ -28,6 +28,7 @@ private:
     bool updating = false;
     GeneratorSettings current;
     juce::ComboBox root, scale, feel;
+    juce::Slider complexity;
     Segmented family { { "SUB", "ACID" } }, bars { { "1", "2", "4", "8" } };
     juce::TextButton octDown { "-" }, octUp { "+" };
     juce::Label octLabel;

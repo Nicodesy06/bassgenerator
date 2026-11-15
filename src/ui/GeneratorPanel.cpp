@@ -27,6 +27,17 @@ GeneratorPanel::GeneratorPanel (GrooveForgeProcessor& p) : proc (p)
     family.setTooltip ("Family: SUB = round club sub lines (root/fifth/octave, longer notes). ACID = accented, sliding, step-wise hooks. Also switches the synth engine.");
     bars.setTooltip ("Phrase length in 4/4 bars");
     for (auto* c : { &root, &scale, &feel }) { addAndMakeVisible (*c); c->onChange = [this] { pushSettings(); }; }
+    complexity.setSliderStyle (juce::Slider::LinearHorizontal);
+    complexity.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+    complexity.setRange (0, 100, 5);
+    complexity.setDoubleClickReturnValue (true, kNeutralComplexity);
+    complexity.textFromValueFunction = [] (double v) { return juce::String (juce::roundToInt (v)) + " %"; };
+    complexity.setTooltip ("Complexity: how many notes the line has, inside the chosen Feel. 50 % = the feel's natural density, higher = more notes and movement, lower = fewer notes and more space. Double-click: 50 %.");
+    complexity.setWantsKeyboardFocus (true);
+    // regenerate once per gesture (dragging would flood the history)
+    complexity.onDragEnd = [this] { pushSettings(); };
+    complexity.onValueChange = [this] { if (! complexity.isMouseButtonDown()) pushSettings(); };
+    addAndMakeVisible (complexity);
     addAndMakeVisible (family);
     addAndMakeVisible (bars);
     family.onChange = [this] (int) { pushSettings(); };
@@ -64,6 +75,7 @@ void GeneratorPanel::refresh (const state::InstanceState& s)
     root.setSelectedId (s.settings.root + 1, juce::dontSendNotification);
     scale.setSelectedId ((int) s.settings.scale + 1, juce::dontSendNotification);
     feel.setSelectedId ((int) s.settings.feel + 1, juce::dontSendNotification);
+    complexity.setValue (s.settings.complexity, juce::dontSendNotification);
     family.setSelected ((int) s.settings.family, false);
     family.setAccent (familyColour (s.settings.family == Family::Acid));
     const int bi = s.settings.bars == 1 ? 0 : s.settings.bars == 2 ? 1 : s.settings.bars == 4 ? 2 : 3;
@@ -86,6 +98,7 @@ void GeneratorPanel::pushSettings()
     s.root = juce::jmax (0, root.getSelectedId() - 1);
     s.scale = (ScaleType) juce::jmax (0, scale.getSelectedId() - 1);
     s.feel = (Feel) juce::jmax (0, feel.getSelectedId() - 1);
+    s.complexity = juce::roundToInt (complexity.getValue());
     s.family = (Family) family.getSelected();
     const int barsOpts[] = { 1, 2, 4, 8 };
     s.bars = barsOpts[bars.getSelected()];
@@ -124,18 +137,18 @@ void GeneratorPanel::resized()
     auto r = getLocalBounds().withTrimmedTop (10).withTrimmedBottom (4);
     logoWidth = juce::jlimit (128, 186, getWidth() / 8);
     r.removeFromLeft (logoWidth);
-    auto right = r.removeFromRight (juce::jmin (300, r.getWidth() / 4));
+    auto right = r.removeFromRight (juce::jmin (280, r.getWidth() / 5));
     diceBtn.setBounds (right.removeFromRight (right.getWidth() * 2 / 5).reduced (4, 10));
     generateBtn.setBounds (right.reduced (4, 6));
     const int lockW = 20;
     struct G { juce::String cap; float weight; };
-    const G groups[] = { { "Key", 1.0f }, { "Scale", 1.7f }, { "Family", 1.55f }, { "Feel", 1.5f }, { "Bars", 1.45f }, { "Octave", 1.15f } };
+    const G groups[] = { { "Key", 1.0f }, { "Scale", 1.7f }, { "Family", 1.55f }, { "Feel", 1.5f }, { "Complexity", 1.4f }, { "Bars", 1.45f }, { "Octave", 1.15f } };
     float total = 0;
     for (auto& g : groups) total += g.weight;
     const int gap = 10;
-    const int avail = r.getWidth() - gap * 5;
+    const int avail = r.getWidth() - gap * 6;
     int x = r.getX();
-    for (int i = 0; i < 6; ++i)
+    for (int i = 0; i < 7; ++i)
     {
         const int w = (int) ((float) avail * groups[i].weight / total);
         auto cell = juce::Rectangle<int> (x, r.getY(), w, r.getHeight());
@@ -150,8 +163,9 @@ void GeneratorPanel::resized()
             case 1: scale.setBounds (row); lScale.setBounds (lockR); break;
             case 2: family.setBounds (row); lFamily.setBounds (lockR); break;
             case 3: feel.setBounds (row); lFeel.setBounds (lockR); break;
-            case 4: bars.setBounds (row); lBars.setBounds (lockR); break;
-            case 5:
+            case 4: complexity.setBounds (row.withTrimmedRight (-lockW - 4)); break; // no lock
+            case 5: bars.setBounds (row); lBars.setBounds (lockR); break;
+            case 6:
             {
                 const int bw = juce::jmin (30, row.getWidth() / 3);
                 octDown.setBounds (row.removeFromLeft (bw));

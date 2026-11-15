@@ -66,6 +66,10 @@ struct FeelProfile
 };
 
 const FeelProfile& feelProfile (Feel f) noexcept;
+/** Feel profile adjusted by the Complexity control (0..100). 50 returns the
+    profile unchanged; higher values move the onset target and bounds towards
+    the feel's maximum and favour add/split mutations, lower values the reverse. */
+FeelProfile withComplexity (const FeelProfile& fp, int complexity) noexcept;
 
 namespace rhythm
 {

@@ -13,6 +13,10 @@ History: v1 = initial release (0.1.0). v2 (0.2.0) was calibrated on third-party 
 - **Corpus**: 81 cells. 701–712 are rhythm cells taken from the user's own files (the user owns them); 801–812 are **original** cells written for the groovy house / tech-house idiom the user named as a reference (warm, swung, rolling, call-and-response). They are not transcriptions of any artist's track.
 - **Chromatic approach notes** (opt-in, `GeneratorSettings::chromatic`, LIBRARY → ADVANCED): on a separate `chromatic` RNG stream, with 300 ‰ chance per bar, one weak-position note directly before a target is replaced by the semitone approach; the target note is locked so the approach always resolves. Off by default; out-of-scale checks treat these notes as intentional.
 
+## Complexity (since 0.3.1, `GeneratorSettings::complexity`, 0..100, default 50)
+
+`withComplexity(feelProfile(feel), c)` returns an adjusted profile used for mutations, density enforcement and evaluation; c = 50 returns the profile unchanged, so default output (and the golden hashes) are identical to 0.3.0. Above 50 the onset target moves towards max+2, the minimum rises, the longest tolerated rest shrinks, add/split/ghost mutations gain weight and the core motif may take up to 2 extra mutations; below 50 the reverse (target towards min−1, remove/merge/extend favoured, longer rests). The STYLE archetype pool is additionally weighted by closeness of each archetype's onset count to the adjusted target. Integer arithmetic only. Measured (`Complexity.MoreComplexityMeansMoreNotes`, 60 patterns per point), SUB Balanced onsets/bar: 4.49 / 5.43 / 5.90 / 6.68 / 8.22 at 0 / 25 / 50 / 75 / 100; monotonic for every feel × family. Not affected by RANDOMISE.
+
 ## Taste learning (src/core/TasteProfile.*, src/state/TasteStore.*)
 
 - Each rating extracts normalised features of the rated pattern: 16-step onset histogram, interval histogram (±12), duration buckets (6), density bucket (4). They are added to the liked or disliked accumulators.

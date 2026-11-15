@@ -6,7 +6,8 @@ Generatore di linee di basso + sintetizzatore di basso integrato, plugin **VST3 
 
 ## Cosa fa
 
-- **GENERATE**: un clic crea una frase di basso musicale (1/2/4/8 battute, 4/4) secondo Tonalità, Scala, Famiglia, Feel, Battute e Ottava.
+- **GENERATE**: un clic crea una frase di basso musicale (1/2/4/8 battute, 4/4) secondo Tonalità, Scala, Famiglia, Feel, Complessità, Battute e Ottava.
+- **Complexity** (0–100 %): quante note ha la linea dentro il Feel scelto. 50 % = densità naturale del feel; più alto = più note e movimento; più basso = meno note e più spazio. Doppio clic torna a 50 %.
 - Motore di generazione **deterministico e offline**: corpus originale di 81 celle ritmiche scritte a mano (tra cui celle ricavate dalle tue bassline e celle originali nello stile house/tech house groovy), grammatica ritmica con mutazioni vincolate, traiettoria di pitch condizionata sul ruolo ritmico, struttura di frase (A A' B F…), valutazione a candidati calibrata sulle tue bassline. Niente cloud.
 - **Impara dai tuoi gusti (LIKE / DISLIKE)**: sotto il piano roll valuti ogni pattern. Ogni voto aggiorna subito, in locale, il profilo di gusto: ritmi, intervalli e durate che ti piacciono diventano più probabili, quelli che scarti più rari; i ritmi che ti piacciono entrano nel tuo dataset personale. Il tasto **TASTE** spegne l'apprendimento per sentire il generatore di fabbrica. Nessun dato lascia il computer.
 - **Due seed**: `STYLE` (idea: archetipo, motivo, frase) e `VAR` (variazioni limitate della stessa idea). Modificabili con trascinamento (Shift = fine), rotella, frecce, doppio clic per digitare, tasto destro copia/incolla.
@@ -80,7 +81,7 @@ Poi rieseguire la scansione dei plugin nel DAW e inserire "GrooveForge Bass" com
 
 ## Uso rapido
 
-1. Scegli Key, Scale, Family (SUB/ACID), Feel, Bars. Premi **GENERATE** (tasto `G`).
+1. Scegli Key, Scale, Family (SUB/ACID), Feel, Complexity, Bars. Premi **GENERATE** (tasto `G`).
 2. Premi Play nel DAW (SYNC attivo) oppure **PREVIEW** (`P`) a transport fermo.
 3. Ti piace l'idea ma vuoi varianti? **NEW VAR** (`V`) mantiene lo STYLE. Vuoi un'altra idea? **NEW STYLE** (`S`). **RANDOMISE** (`R`) cambia tutto ciò che non è bloccato.
 4. Torna indietro con `<` / `>` (o Ctrl+Z / Ctrl+Y). Salva con **+ FAV** (`F`). LIBRARY apre History, Favorites e opzioni avanzate (swing, contesto ritmico della cassa, BPM di fallback, reset).

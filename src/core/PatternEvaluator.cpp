@@ -100,7 +100,7 @@ ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx)
     if (! v.empty()) { r.rejected = true; r.reasons.push_back ("invalid: " + v); return r; }
     r.metrics = computeMetrics (p);
     const auto& m = r.metrics;
-    const auto& fp = feelProfile (ctx.feel);
+    const auto& fp = ctx.profile != nullptr ? *ctx.profile : feelProfile (ctx.feel);
 
     if (m.noteCount == 0) r.reasons.push_back ("silent");
     if (m.outOfScale > 0) r.reasons.push_back ("out-of-scale notes");

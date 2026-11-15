@@ -118,6 +118,18 @@ int main (int argc, char** argv)
         for (int i = 0; i < 10; ++i) { button (*ed, "RANDOMISE")->triggerClick(); pump (10); }
         check (proc.getStateSnapshot().settings.root == rootBefore, "locked root survives 10 RANDOMISE clicks");
 
+        // complexity slider -> generator setting (more notes)
+        auto* cx = findChild<juce::Slider> (*ed, [] (juce::Slider& sl) { return sl.getTooltip().startsWith ("Complexity"); });
+        check (cx != nullptr, "complexity slider present");
+        if (cx)
+        {
+            cx->setValue (100, juce::sendNotificationSync);
+            pump (50);
+            check (proc.getStateSnapshot().settings.complexity == 100, "complexity slider sets the generator setting");
+            cx->setValue (50, juce::sendNotificationSync);
+            pump (50);
+        }
+
         // synth knob -> parameter
         auto* cutoff = findChild<juce::Slider> (*ed, [] (juce::Slider& s) { return s.getTooltip().startsWith ("Filter cutoff"); });
         check (cutoff != nullptr, "cutoff knob present");

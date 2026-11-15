@@ -35,6 +35,7 @@ struct EvalContext
     KickContext kick = KickContext::FourOnFloor;
     bool scoreMotif = true;        // false for single-bar core candidates
     const TasteProfile* taste = nullptr; // optional user taste (LIKE/DISLIKE feedback)
+    const FeelProfile* profile = nullptr; // complexity-adjusted profile; null = feelProfile (feel)
 };
 
 ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx);
