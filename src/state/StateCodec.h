@@ -29,6 +29,7 @@ struct InstanceState
     double previewBpm = 124.0;
     int editorWidth = 1220, editorHeight = 780;
     bool drawerOpen = false;
+    bool useTaste = true;            // apply the local LIKE/DISLIKE profile when generating
 };
 
 juce::ValueTree encode (const InstanceState& s);

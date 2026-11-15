@@ -28,12 +28,13 @@ target_sources(gfb_juce_tests PRIVATE
     PersistenceTests.cpp
     JuceMidiCrossCheckTests.cpp
     ${PROJECT_SOURCE_DIR}/src/state/StateCodec.cpp
-    ${PROJECT_SOURCE_DIR}/src/state/FavoritesStore.cpp)
+    ${PROJECT_SOURCE_DIR}/src/state/FavoritesStore.cpp
+    ${PROJECT_SOURCE_DIR}/src/state/TasteStore.cpp)
 target_include_directories(gfb_juce_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(gfb_juce_tests PRIVATE JUCE_USE_CURL=0 JUCE_WEB_BROWSER=0 JUCE_STANDALONE_APPLICATION=1)
 target_link_libraries(gfb_juce_tests PRIVATE gfb_core juce::juce_core juce::juce_data_structures juce::juce_audio_basics
     juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
-foreach(suite State Favorites JuceMidi)
+foreach(suite State Favorites JuceMidi TasteStore)
     add_test(NAME ${suite} COMMAND gfb_juce_tests "${suite}.")
     set_tests_properties(${suite} PROPERTIES TIMEOUT 300)
 endforeach()

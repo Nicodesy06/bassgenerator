@@ -3,6 +3,7 @@
 #include "PluginEditor.h"
 #include "dsp/SynthParams.h"
 #include "midi/MidiDragSource.h"
+#include "midi/MidiFileExport.h"
 
 namespace gfb
 {
@@ -77,13 +78,23 @@ GrooveForgeProcessor::GrooveForgeProcessor()
     pEngine = apvts.getRawParameterValue ("engine");
 
     favoritesStore = std::make_unique<FavoritesStore>();
+    taste = std::make_unique<TasteStore>();
     mididrag::cleanupDragCache (24.0);
 
     // cold start: reproducible but randomly initialised seeds + a valid pattern
     std::lock_guard<std::mutex> g (stateMutex);
     st.settings.styleSeed = freshSeed();
     st.settings.varSeed = freshSeed();
-    setPatternLocked (generatePattern (st.settings), true);
+    setPatternLocked (generateWithTaste (st.settings), true);
+}
+
+Pattern GrooveForgeProcessor::generateWithTaste (const GeneratorSettings& s)
+{
+    if (! useTaste.load()) return generatePattern (s);
+    const TasteProfile profile = taste->profile();
+    GenerationOptions o;
+    o.taste = &profile;
+    return generatePattern (s, o);
 }
 
 GrooveForgeProcessor::~GrooveForgeProcessor() { cancelPendingUpdate(); }
@@ -248,6 +259,7 @@ state::InstanceState GrooveForgeProcessor::getStateSnapshot() const
     s.hostSync = hostSyncOn.load();
     s.midiOut = midiOutOn.load();
     s.previewBpm = previewBpm.load();
+    s.useTaste = useTaste.load();
     return s;
 }
 
@@ -266,7 +278,7 @@ void GrooveForgeProcessor::generate (RollMode mode)
         const auto s = rollSettings (st.settings, st.locks, mode, (uint64_t) juce::Random::getSystemRandom().nextInt64());
         familyChanged = s.family != st.settings.family;
         fam = s.family;
-        setPatternLocked (generatePattern (s), true);
+        setPatternLocked (generateWithTaste (s), true);
     }
     if (familyChanged) applyPreset (fam == Family::Acid ? 4 : 1);
     bump();
@@ -281,7 +293,7 @@ void GrooveForgeProcessor::setSettings (const GeneratorSettings& in)
         const auto s = sanitise (in);
         familyChanged = s.family != st.settings.family;
         fam = s.family;
-        setPatternLocked (generatePattern (s), true);
+        setPatternLocked (generateWithTaste (s), true);
     }
     if (familyChanged) applyPreset (fam == Family::Acid ? 4 : 1); // engine follows the family; user may pick any preset after
     bump();
@@ -366,7 +378,7 @@ void GrooveForgeProcessor::resetToDefaults()
         s.styleSeed = st.settings.styleSeed;
         s.varSeed = st.settings.varSeed;
         st.locks = LockSet {};
-        setPatternLocked (generatePattern (s), true);
+        setPatternLocked (generateWithTaste (s), true);
     }
     for (auto* id : kParamIds)
         if (auto* p = apvts.getParameter (id)) p->setValueNotifyingHost (p->getDefaultValue());
@@ -419,17 +431,42 @@ void GrooveForgeProcessor::setStateInformation (const void* data, int size)
         history.assign (s->history, s->historyCursor);
         // exact snapshot restore; regenerate only if the stored notes were unusable
         if (pattern.notes.empty() || ! validatePattern (pattern).empty())
-            st.pattern = generatePattern (st.settings);
+            st.pattern = generateWithTaste (st.settings);
         else
             st.pattern.settings = pattern.settings;
         st.settings = st.pattern.settings;
         currentProgram = s->presetIndex;
         hostSyncOn = s->hostSync;
+        useTaste = s->useTaste;
         midiOutOn = s->midiOut;
         previewBpm = s->previewBpm;
         publishLocked();
     }
     bump();
+}
+
+bool GrooveForgeProcessor::rateCurrent (bool liked)
+{
+    const auto p = getPattern();
+    const bool ok = taste->rate (p, liked);
+    if (ok && ! liked) generate (RollMode::Seeds); // dislike = "next, please" (locks respected)
+    bump();
+    return ok;
+}
+
+void GrooveForgeProcessor::setUseTaste (bool on) { useTaste = on; bump(); }
+
+int GrooveForgeProcessor::exportLikedDataset (const juce::File& dir)
+{
+    if (! dir.createDirectory()) return 0;
+    int n = 0;
+    for (const auto& p : taste->likedPatterns())
+    {
+        const auto name = juce::String (midi::suggestedFileName (p)).upToLastOccurrenceOf (".mid", false, false)
+                        + "_" + juce::String::toHexString ((juce::int64) p.hash).substring (0, 6) + ".mid";
+        if (mididrag::exportTo (p, p.tempoBpm > 0 ? p.tempoBpm : 124.0, dir.getChildFile (name)).wasOk()) ++n;
+    }
+    return n;
 }
 
 juce::AudioProcessorEditor* GrooveForgeProcessor::createEditor() { return new GrooveForgeEditor (*this); }

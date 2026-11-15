@@ -11,6 +11,7 @@
 #include "dsp/NoteScheduler.h"
 #include "state/FavoritesStore.h"
 #include "state/StateCodec.h"
+#include "state/TasteStore.h"
 
 namespace gfb
 {
@@ -86,6 +87,15 @@ public:
     juce::Result exportMidi (const juce::File& target);
     juce::Result prepareDragFile (juce::File& out);
     FavoritesStore& favorites() { return *favoritesStore; }
+    TasteStore& tasteStore() { return *taste; }
+
+    // ---- local taste learning ----------------------------------------------
+    /** Rate the current pattern. A DISLIKE immediately generates a new pattern. Returns false on I/O error. */
+    bool rateCurrent (bool liked);
+    void setUseTaste (bool on);
+    bool isUsingTaste() const noexcept { return useTaste.load(); }
+    /** Write every liked pattern as .mid into `dir` (to grow the factory dataset). Returns files written. */
+    int exportLikedDataset (const juce::File& dir);
 
     /** Increments whenever generator state changes (UI polls it). */
     std::atomic<uint32_t> stateVersion { 1 };
@@ -129,6 +139,9 @@ private:
     std::atomic<float>* pEngine = nullptr;
 
     std::unique_ptr<FavoritesStore> favoritesStore;
+    std::unique_ptr<TasteStore> taste;
+    std::atomic<bool> useTaste { true };
+    Pattern generateWithTaste (const GeneratorSettings& s);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GrooveForgeProcessor)
 };

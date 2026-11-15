@@ -104,6 +104,7 @@ if(GFB_BUILD_PLUGIN)
         src/PluginEditor.cpp
         src/state/StateCodec.cpp
         src/state/FavoritesStore.cpp
+        src/state/TasteStore.cpp
         src/midi/MidiDragSource.cpp
         src/ui/DesignSystem.cpp
         src/ui/PianoRoll.cpp

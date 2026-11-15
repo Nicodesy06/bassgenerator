@@ -224,3 +224,49 @@ TEST_CASE (Favorites, ConcurrentProcessesMerge)
     CHECK_EQ (check.list().size(), (size_t) 60);
     dir.deleteRecursively();
 }
+
+#include "state/TasteStore.h"
+
+TEST_CASE (TasteStore, PersistsAcrossInstancesAndIgnoresDoubleRatings)
+{
+    const auto dir = tempDir ("taste");
+    const auto file = dir.getChildFile ("taste.json");
+    {
+        TasteStore a (file);
+        CHECK (a.rate (pat (1), true));
+        CHECK (a.rate (pat (2), false));
+        CHECK (a.rate (pat (1), true));   // same pattern again: ignored
+        CHECK_EQ (a.ratings(), 2);
+        CHECK (a.alreadyRated (pat (1)));
+    }
+    TasteStore b (file);
+    CHECK_EQ (b.profile().likes, 1);
+    CHECK_EQ (b.profile().dislikes, 1);
+    REQUIRE (b.likedPatterns().size() == 1);
+    CHECK (b.likedPatterns()[0].notes == pat (1).notes);
+    CHECK (! b.profile().cells.empty());
+    // another instance writes; b picks it up
+    TasteStore c (file);
+    CHECK (c.rate (pat (3), true));
+    CHECK (b.reloadIfChanged() || b.ratings() == 3);
+    CHECK_EQ (b.ratings(), 3);
+    CHECK (b.reset());
+    TasteStore d (file);
+    CHECK_EQ (d.ratings(), 0);
+    dir.deleteRecursively();
+}
+
+TEST_CASE (TasteStore, CorruptFileStartsFresh)
+{
+    const auto dir = tempDir ("tastebad");
+    const auto file = dir.getChildFile ("taste.json");
+    file.replaceWithText ("{ not json");
+    TasteStore a (file);
+    CHECK_EQ (a.ratings(), 0);
+    CHECK (a.lastError().contains ("unreadable"));
+    CHECK (dir.findChildFiles (juce::File::findFiles, false, "taste.corrupt-*.json").size() == 1);
+    CHECK (a.rate (pat (9), true));
+    TasteStore b (file);
+    CHECK_EQ (b.ratings(), 1);
+    dir.deleteRecursively();
+}

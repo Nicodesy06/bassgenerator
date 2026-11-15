@@ -8,7 +8,7 @@ namespace
 {
 const juce::Identifier kSchema ("schema"), kAlgo ("algorithmVersion"), kSettings ("settings"), kLocks ("locks"), kPattern ("pattern"),
     kHistory ("history"), kEntry ("entry"), kData ("data"), kCursor ("cursor"), kPreset ("preset"), kHostSync ("hostSync"),
-    kMidiOut ("midiOut"), kPreviewBpm ("previewBpm"), kUi ("ui"), kW ("w"), kH ("h"), kDrawer ("drawer");
+    kMidiOut ("midiOut"), kPreviewBpm ("previewBpm"), kUseTaste ("useTaste"), kUi ("ui"), kW ("w"), kH ("h"), kDrawer ("drawer");
 
 std::string str (const juce::var& v) { return v.toString().toStdString(); }
 } // namespace
@@ -25,6 +25,7 @@ juce::ValueTree encode (const InstanceState& s)
     t.setProperty (kHostSync, s.hostSync, nullptr);
     t.setProperty (kMidiOut, s.midiOut, nullptr);
     t.setProperty (kPreviewBpm, s.previewBpm, nullptr);
+    t.setProperty (kUseTaste, s.useTaste, nullptr);
     juce::ValueTree h (kHistory);
     h.setProperty (kCursor, s.historyCursor, nullptr);
     for (const auto& p : s.history)
@@ -54,6 +55,7 @@ std::optional<InstanceState> decode (const juce::ValueTree& t)
     s.presetIndex = juce::jlimit (0, 7, (int) t.getProperty (kPreset, 1));
     s.hostSync = (bool) t.getProperty (kHostSync, true);
     s.midiOut = (bool) t.getProperty (kMidiOut, false);
+    s.useTaste = (bool) t.getProperty (kUseTaste, true);
     const double bpm = (double) t.getProperty (kPreviewBpm, 124.0);
     s.previewBpm = std::isfinite (bpm) ? juce::jlimit (40.0, 240.0, bpm) : 124.0;
     const auto h = t.getChildWithName (kHistory);
