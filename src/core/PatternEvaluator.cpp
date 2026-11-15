@@ -51,14 +51,16 @@ double intervalPrior (const Pattern& p) noexcept
 
 Weights weightsFor (Feel f, Family fam) noexcept
 {
-    Weights w { 3, 2, 1.5, 1.5, 2, 1.5, 2, 2, 1.5, 1.5, 1, 1.5, 2, 1, 3, 2, 2 };
+    // v4: the user-dataset priors (groove / interval / legato) are retired; root share and
+    // off-8th weight replace them (docs/BASS_RESEARCH.md R7)
+    Weights w { 3, 2, 1.5, 1.5, 2, 1.5, 2, 2.5, 1.5, 1.5, 1, 1.5, 2, 1, 0, 0, 1 };
     switch (f)
     {
-        case Feel::Sparse:     w.rest = 0.3; w.density = 3.5; w.contrast = 1; w.groove = 2; break;
+        case Feel::Sparse:     w.rest = 0.3; w.density = 3.5; w.contrast = 1; break;
         case Feel::Busy:       w.chain = 3; w.density = 3; w.intervals = 2.5; w.legato = 0.5; break;
         case Feel::Rolling:    w.offbeat = 2.5; w.chain = 2.5; break;
         case Feel::Syncopated: w.sync = 3.5; w.kick = 2; break;
-        case Feel::Stabby:     w.contrast = 2.5; w.chain = 3; w.legato = 0; w.groove = 2; break;
+        case Feel::Stabby:     w.contrast = 2.5; w.chain = 3; w.legato = 0; break;
         default: break;
     }
     if (fam == Family::Sub) { w.range *= 1.5; w.anchor *= 1.3; w.intervals *= 1.2; }
@@ -121,14 +123,14 @@ ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx)
     add ("offbeat", inBand (m.offbeatRatio * 1000, fp.offbeatLo, fp.offbeatHi, 400), w.offbeat);
     // 4 implied kick interaction (a prior, never a hard ban)
     double kick = 1.0;
-    if (ctx.kick == KickContext::FourOnFloor) kick = 1.0 - std::max (0.0, m.kickCollision - 0.25) * 2.0; // user data: ~18 %
+    if (ctx.kick == KickContext::FourOnFloor) kick = 1.0 - m.kickCollision * 3.0; // v4: bass lives between the kicks
     else if (ctx.kick == KickContext::Broken) kick = inBand (m.kickCollision, 0.1, 0.45, 0.4);
     add ("kick", kick, w.kick);
     // 5 motif recurrence (structural repetition, but not a frozen loop)
     if (ctx.scoreMotif && p.bars > 1)
     {
-        // user dataset: strongly repetitive phrases (A A A A' / A B A B: ~44 % distinct bars, similarity ~0.88)
-        double motif = inBand (m.barSimilarity, 0.6, 1.0, 0.4);
+        // riff repeated with small changes: very similar bars, a few distinct ones
+        double motif = inBand (m.barSimilarity, 0.7, 1.0, 0.4);
         if (p.bars >= 4)
             motif *= inBand ((double) m.distinctBars / p.bars, 0.25, 0.6, 0.5);
         add ("motif", motif, w.motif);
@@ -137,16 +139,19 @@ ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx)
     const double maxSpan = ctx.family == Family::Sub ? 12 : 15;
     add ("range", inBand (m.pitchRange, 0, maxSpan, 8), w.range);
     // 7 interval character
+    // v4: root-centred club lines -- few scale steps (SUB), moderate steps (ACID), no wide leaps
     double iv;
     if (ctx.family == Family::Sub)
-        iv = 1.0 - m.leapRatio * 2.5 - std::max (0.0, m.stepRatio - 0.5);
+        iv = 1.0 - m.leapRatio * 2.5 - std::max (0.0, m.stepRatio - 0.2) * 1.5;
     else
-        iv = 0.6 + 0.5 * std::min (1.0, m.stepRatio * 2.0) - m.leapRatio * 2.0;
+        iv = 1.0 - m.leapRatio * 2.0 - std::max (0.0, m.stepRatio - 0.45);
     if (m.distinctPitches < 2 && m.noteCount > 3) iv -= ctx.family == Family::Acid ? 0.5 : 0.2;
     if (m.distinctPitches > 7) iv -= 0.3;
     add ("intervals", iv, w.intervals);
     // 8 root anchoring
-    add ("anchor", (m.firstIsRoot ? 0.5 : 0.1) + 0.5 * std::min (1.0, m.rootRatio * 2.5), w.anchor);
+    // root share band: tonic dominant but not a one-note drone (SUB 50-90 %, ACID 35-80 %)
+    const double rootBand = ctx.family == Family::Sub ? inBand (m.rootRatio, 0.5, 0.9, 0.3) : inBand (m.rootRatio, 0.35, 0.8, 0.3);
+    add ("anchor", (m.firstIsRoot ? 0.4 : 0.1) + 0.6 * rootBand, w.anchor);
     // 9 ending
     add ("ending", m.endsResolved ? 1.0 : 0.3, w.ending);
     // 10 duration contrast
@@ -170,7 +175,7 @@ ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx)
     // 15-17: priors learned from the user's own dataset
     add ("groove_prior", ctx.kick == KickContext::Open ? 0.5 + 0.5 * groovePrior (p) : groovePrior (p), w.groove);
     add ("interval_prior", intervalPrior (p), w.ivPrior);
-    add ("legato", inBand (m.soundingRatio, 0.55, 0.95, 0.35), w.legato);
+    add ("legato", inBand (m.soundingRatio, 0.3, 0.8, 0.3), w.legato);
     // 18: the user's own feedback (weight grows with the number of ratings)
     if (ctx.taste != nullptr && ! ctx.taste->empty())
         add ("taste", taste::score (p, *ctx.taste), 10.0 * taste::confidence (*ctx.taste));

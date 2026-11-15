@@ -10,3 +10,6 @@ target_link_libraries(gfb_benchmark PRIVATE gfb_core)
 
 add_executable(reference_analyzer reference_analyzer.cpp)
 target_link_libraries(reference_analyzer PRIVATE gfb_core)
+
+add_executable(pattern_dump pattern_dump.cpp)
+target_link_libraries(pattern_dump PRIVATE gfb_core)

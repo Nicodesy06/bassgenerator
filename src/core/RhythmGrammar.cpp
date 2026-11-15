@@ -9,15 +9,17 @@ namespace
 {
 using M = Mutation;
 //                                    Rem Add Spl Mrg Ant Del Acc Gho Oct Pck Sld Ext
-// Gates and Extend weights since algorithmVersion 3 follow the user's dataset (legato: ~77 % sounding).
+// v4 (docs/BASS_RESEARCH.md): two-length articulation (short 16th flicks,
+// long off-8th notes cut before the kick by renderBars), tech-house swing
+// 55-58 %, Extend rarer, Busy capped at the 12 kick-free 16ths.
 constexpr std::array<FeelProfile, kNumFeels> kProfiles {{
-    { Feel::Random,     4,  9,  6, 900, 970, 54, 150, 300, 650, 300, 700, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1, 3 } },
-    { Feel::Sparse,     2,  6,  3, 920, 980, 52,  80, 250, 750, 300, 850, 13, 2, { 3, 1, 1, 2, 2, 2, 2, 1, 2, 2, 1, 3 } },
-    { Feel::Balanced,   4,  9,  6, 900, 970, 54, 150, 250, 650, 300, 750, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 1, 4 } },
-    { Feel::Busy,       8, 13, 10, 800, 930, 52, 250, 250, 650, 150, 600,  4, 3, { 2, 3, 3, 1, 1, 0, 3, 3, 1, 1, 2, 1 } },
-    { Feel::Rolling,    6, 12,  9, 840, 950, 56, 250, 450, 850, 300, 750,  5, 2, { 1, 2, 2, 1, 1, 0, 2, 4, 1, 2, 1, 2 } },
-    { Feel::Syncopated, 4, 10,  6, 920, 980, 54, 100, 500, 950, 150, 700,  9, 2, { 1, 1, 1, 2, 4, 2, 2, 1, 1, 2, 1, 4 } },
-    { Feel::Stabby,     3,  9,  5, 400, 520, 52,  60, 250, 800, 150, 700, 10, 2, { 2, 2, 0, 0, 2, 2, 3, 1, 2, 1, 0, 0 } },
+    { Feel::Random,     4,  9,  6, 600, 900, 56, 150, 300, 650, 300, 850, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1, 1 } },
+    { Feel::Sparse,     2,  6,  3, 650, 930, 57,  80, 250, 750, 300, 900, 13, 2, { 3, 1, 1, 2, 2, 2, 2, 1, 2, 2, 1, 1 } },
+    { Feel::Balanced,   4,  9,  6, 600, 900, 56, 150, 250, 650, 300, 900, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 1, 1 } },
+    { Feel::Busy,       8, 12, 10, 550, 850, 55, 250, 250, 650, 150, 650,  4, 3, { 2, 3, 3, 1, 1, 0, 3, 3, 1, 1, 2, 0 } },
+    { Feel::Rolling,    6, 12,  9, 560, 880, 57, 250, 450, 850, 300, 800,  5, 2, { 1, 2, 2, 1, 1, 0, 2, 4, 1, 2, 1, 1 } },
+    { Feel::Syncopated, 4, 10,  6, 650, 920, 56, 100, 500, 950, 150, 900,  9, 2, { 1, 1, 1, 2, 4, 2, 2, 1, 1, 2, 1, 2 } },
+    { Feel::Stabby,     3,  9,  5, 400, 520, 55,  60, 250, 800, 150, 800, 10, 2, { 2, 2, 0, 0, 2, 2, 3, 1, 2, 1, 0, 0 } },
 }};
 
 bool isOnset (const Step& s) noexcept { return s.kind == StepKind::Onset; }
@@ -227,6 +229,54 @@ double onsetSimilarity (const RhythmCell& a, const RhythmCell& b) noexcept
         uni += (x || y) ? 1 : 0;
     }
     return uni == 0 ? 1.0 : (double) inter / (double) uni;
+}
+
+bool isKickSafe (const RhythmCell& c) noexcept
+{
+    for (int k = 0; k < kStepsPerBar; k += 4)
+        if (c.steps[(size_t) k].kind != StepKind::Rest) return false;
+    return true;
+}
+
+bool fitToKick (RhythmCell& c) noexcept
+{
+    const bool wasSafe = isKickSafe (c);
+    auto& st = c.steps;
+    for (int k = 0; k < kStepsPerBar; k += 4)
+    {
+        auto& s = st[(size_t) k];
+        if (s.kind == StepKind::Hold)
+        {
+            // a note sustained across the kick ends just before it
+            for (int j = k; j < kStepsPerBar && st[(size_t) j].kind == StepKind::Hold; ++j) st[(size_t) j] = Step {};
+            const int start = k > 0 ? noteStartContaining (c, k - 1) : -1;
+            if (start >= 0) st[(size_t) start].slide = false;
+        }
+        else if (s.kind == StepKind::Onset)
+        {
+            const Step moved = s;
+            s = Step {};
+            const int e = k + 1;
+            if (st[(size_t) e].kind == StepKind::Onset) continue;       // e already played: drop the kick-step note
+            st[(size_t) e] = moved;                                      // onset slides to the `e` 16th
+            st[(size_t) e].slide = moved.slide && e + 1 < kStepsPerBar && st[(size_t) (e + 1)].kind == StepKind::Onset;
+        }
+    }
+    // the previous note may have slid into a removed onset
+    for (int i = 0; i < kStepsPerBar; ++i)
+        if (st[(size_t) i].kind == StepKind::Onset && st[(size_t) i].slide)
+        {
+            const int e = noteEnd (c, i);
+            if (e >= kStepsPerBar || st[(size_t) e].kind != StepKind::Onset) st[(size_t) i].slide = false;
+        }
+    // accents: off-8th `&` carries the groove, other positions are normal
+    for (int i = 0; i < kStepsPerBar; ++i)
+    {
+        auto& s = st[(size_t) i];
+        if (s.kind != StepKind::Onset || s.accent == 0) continue;
+        s.accent = (i % 4 == 2) ? 2 : 1;
+    }
+    return wasSafe;
 }
 
 Mutation pickMutation (Rng& rng, const FeelProfile& fp, Family fam)

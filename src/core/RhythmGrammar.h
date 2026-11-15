@@ -89,6 +89,14 @@ double onsetSimilarity (const RhythmCell& a, const RhythmCell& b) noexcept;
     feel's density / style rules. */
 bool mutate (RhythmCell& cell, Mutation m, Rng& rng, const FeelProfile& fp, Family fam);
 
+/** Four-on-the-floor club grid (algorithm v4, docs/BASS_RESEARCH.md R1/R2):
+    no onset on a kick step (0/4/8/12) -- it moves to the following `e` 16th or
+    is dropped -- no note held across a kick, accents only on the off-8th `&`
+    (ghosts untouched). Returns true when the cell was already kick-safe. */
+bool fitToKick (RhythmCell& cell) noexcept;
+/** True when the cell has no onset on a kick step and no hold across one. */
+bool isKickSafe (const RhythmCell& cell) noexcept;
+
 /** Pick a mutation according to the feel's weights (family-adjusted). */
 Mutation pickMutation (Rng& rng, const FeelProfile& fp, Family fam);
 } // namespace rhythm

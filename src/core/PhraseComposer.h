@@ -30,6 +30,7 @@ struct ArticulationParams
     ScaleType scale = ScaleType::NaturalMinor;
     int octave = 0;
     int swingPercent = 50;
+    bool kickClear = false; // four-on-the-floor: every note is released before the next kick (v4, R1)
 };
 
 namespace phrase

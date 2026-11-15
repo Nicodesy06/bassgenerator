@@ -11,7 +11,8 @@ add_executable(gfb_tests
     DspTests.cpp
     RealtimeTests.cpp
     TasteTests.cpp
-    ComplexityTests.cpp)
+    ComplexityTests.cpp
+    GrooveTests.cpp)
 target_link_libraries(gfb_tests PRIVATE gfb_core)
 target_include_directories(gfb_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

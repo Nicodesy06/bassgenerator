@@ -1,4 +1,19 @@
-# Generation algorithm (algorithmVersion 3)
+# Generation algorithm (algorithmVersion 4)
+
+## v4: tech-house / minimal-tech rules (0.4.0)
+
+v3 lines were rejected by the user. v4 applies genre rules derived in `docs/BASS_RESEARCH.md`:
+
+- **Kick lane (R1)**: with the four-on-the-floor context only kick-safe corpus cells are eligible; `rhythm::fitToKick` moves any onset on a kick step to the following `e` 16th (or drops it), truncates holds across kicks and keeps accents only on the off-8th; `renderBars` releases every non-slide note 40 ticks before the next kick. Broken/Open contexts keep the v3 behaviour.
+- **Position-aware pitch (R2/R3)**: `&` → tonic (or octave), `e` → tonic roll with some colour, `a` → pickup/colour; vocabulary = tonic + 1–2 colours (SUB) / 2–3 (ACID) drawn mostly from octave, 5th, ♭7 below, ♭3; ≤ 3 (ACID 4) distinct pitches per bar; colours never repeat more than twice; no leaps beyond an octave; the v3 step-wise transition model is removed.
+- **Phrase (R4)**: A A A A′ / A A′ A F favoured; A′ always changes one non-off-8th slot; answers are mostly a contrasting rhythm on the same notes, sometimes a one-bar move to ♭VII/♭VI; diatonic inversion disabled; fills use chord tones (run up = tonic/5th below/♭7 pickup, run down = octave/♭7/5th).
+- **Articulation (R5/R6)**: short gates for 16th flicks, long gates for off-8th notes (cut before the kick); ghost velocity ~50; default swing 55–57 %.
+- **Evaluator (R7)**: user-dataset groove/interval priors retired; root-share band (SUB 0.5–0.9, ACID 0.35–0.8), stricter kick component, interval component penalises step-wise walking (SUB), legato band 0.3–0.8.
+- Measured: `tests/GrooveTests.cpp` and `docs/QUALITY_REPORT.md` §3.
+
+The sections below describe the shared pipeline; where they mention v3 values, v4 overrides them as listed above.
+
+## Previous version notes (v3)
 
 The engine is an **authored corpus + conditioned generative grammars + heuristic candidate evaluator**, fully deterministic and offline. Since v3 it is calibrated on the user's own hand-made basslines and can be steered by **local taste learning** from LIKE / DISLIKE ratings (simple feature statistics, not a neural network).
 

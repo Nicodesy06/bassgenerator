@@ -88,12 +88,13 @@ struct Core
 BarRealisation toBar (const std::string& label, const Core& c) { return { label, c.cell, c.slots, c.pitches }; }
 
 Core varyCore (const Core& base, Rng& rng, const FeelProfile& fp, Family fam, const MotifVocabulary& vocab,
-               const PitchContext& ctx, int rhythmOps, int pitchOps, int rhythmPermille)
+               const PitchContext& ctx, int rhythmOps, int pitchOps, int rhythmPermille, bool kickClear)
 {
     Core out = base;
     if (rhythmOps > 0 && rng.chancePermille (rhythmPermille))
     {
         applyRandomMutations (out.cell, rhythmOps, rng, fp, fam);
+        if (kickClear) rhythm::fitToKick (out.cell);
         out.slots = rhythm::slots (out.cell);
         out.pitches = phrase::carryPitches (base.slots, base.pitches, out.slots, vocab, rng, ctx);
     }
@@ -115,12 +116,14 @@ const FillCell& pickFill (Rng& rng, Family fam, bool wantLong)
     return *c[(size_t) rng.pickWeighted (w.data(), (int) w.size())];
 }
 
-Core makeFill (const Core& base, Rng& rng, const FillCell& fill, const PitchContext& ctx, const FeelProfile& fp, Family fam)
+Core makeFill (const Core& base, Rng& rng, const FillCell& fill, const PitchContext& ctx, const FeelProfile& fp, Family fam,
+               bool kickClear)
 {
     Core out = base;
     rhythm::applyFill (out.cell, fill.grid);
     // a fill may push density out of range for sparse feels: trim gently
     if (rhythm::onsetCount (out.cell) > fp.maxOnsets + 1) enforceDensity (out.cell, rng, fp, fam);
+    if (kickClear) rhythm::fitToKick (out.cell);
     out.slots = rhythm::slots (out.cell);
     // pitches: keep base pitches for the untouched part, shape the fill part
     std::vector<int> pitches (out.slots.size(), 0);
@@ -176,6 +179,16 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
     }
     std::vector<int> poolW;
     auto pool = archetypePool (feel, s.family, poolW, s.kickContext, opts.taste, learned, learnedWeights);
+    // v4 R1: with a four-on-the-floor kick only kick-safe grooves are eligible
+    const bool kickClear = s.kickContext == KickContext::FourOnFloor;
+    if (kickClear)
+    {
+        std::vector<const RhythmArchetype*> safe;
+        std::vector<int> safeW;
+        for (size_t i = 0; i < pool.size(); ++i)
+            if (rhythm::isKickSafe (rhythm::parseGrid (pool[i]->grid))) { safe.push_back (pool[i]); safeW.push_back (poolW[i]); }
+        if (safe.size() >= 3) { pool = std::move (safe); poolW = std::move (safeW); }
+    }
     if (pool.empty()) // cannot happen with the shipped corpus (tested), defensive only
     {
         for (const auto& a : rhythmCorpus()) { pool.push_back (&a); poolW.push_back (1); }
@@ -211,14 +224,16 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
 
     const int tmplIdx = phrase::pickTemplateIndex (s.bars, styleRng);
     const auto plan = phrase::phraseTemplate (s.bars, tmplIdx);
-    const std::array<int, 3> ansWeights = s.family == Family::Sub ? std::array<int, 3> { 2, 3, 1 } : std::array<int, 3> { 3, 2, 2 };
+    // v4 R4: answers keep the tonal centre -- mostly a contrasting rhythm on the same
+    // notes, sometimes a one-bar move to bVII/bVI/iv; diatonic inversion is rare
+    const std::array<int, 3> ansWeights = s.family == Family::Sub ? std::array<int, 3> { 1, 3, 0 } : std::array<int, 3> { 1, 3, 0 }; // {Transposed, Contrast, Inverted}
     const AnswerType ansType = (AnswerType) styleRng.pickWeighted (ansWeights.data(), 3);
-    const std::array<int, 4> transSteps { 3, -2, 4, -1 };
-    const std::array<int, 4> transW { 3, 2, 2, 1 };
+    const std::array<int, 4> transSteps { -1, -2, 3, 4 };
+    const std::array<int, 4> transW { 3, 2, 1, 0 };
     const int transpose = transSteps[(size_t) styleRng.pickWeighted (transW.data(), 4)];
     const int swing = effectiveSwing (s, feel, arch.maxSwing);
 
-    ArticulationParams ap { feel, s.family, s.root, s.scale, s.octave, swing };
+    ArticulationParams ap { feel, s.family, s.root, s.scale, s.octave, swing, kickClear };
     EvalContext coreEval { feel, s.family, s.kickContext, false, opts.taste, &fp };
     EvalContext fullEval { feel, s.family, s.kickContext, true, opts.taste, &fp };
 
@@ -246,6 +261,7 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
         const int muts = i == 0 ? 0 : r.range (0, fp.maxStyleMutations);
         applyRandomMutations (c.cell, muts, r, fp, s.family);
         enforceDensity (c.cell, r, fp, s.family);
+        if (kickClear) rhythm::fitToKick (c.cell);
         c.slots = rhythm::slots (c.cell);
         c.pitches = pitch::assignPitches (c.slots, vocab, r, ctx, BarFunction::Statement, 0);
         Pattern one = phrase::renderBars ({ toBar ("A", c) }, ap);
@@ -261,6 +277,7 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
         Rng r (deriveSeed (s.styleSeed, "style-fallback"));
         core.cell = archCell;
         enforceDensity (core.cell, r, fp, s.family);
+        if (kickClear) rhythm::fitToKick (core.cell);
         core.slots = rhythm::slots (core.cell);
         core.pitches = pitch::assignPitches (core.slots, vocab, r, ctx, BarFunction::Statement, 0);
         rep.fallbackUsed = true;
@@ -300,6 +317,7 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
                 answer.cell = rhythm::parseGrid (ansArch.grid);
                 applyRandomMutations (answer.cell, r.range (0, 1), r, fp, s.family);
                 enforceDensity (answer.cell, r, fp, s.family);
+                if (kickClear) rhythm::fitToKick (answer.cell);
                 answer.slots = rhythm::slots (answer.cell);
                 answer.pitches = pitch::assignPitches (answer.slots, vocab, r, ctx, BarFunction::Answer,
                                                        core.pitches.empty() ? 0 : core.pitches.back());
@@ -331,11 +349,11 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
             else if (label == "A*")
             {
                 const int mode = v.range (0, 9);
-                if (mode < 4) c = varyCore (core, v, fp, s.family, vocab, ctx, 0, 1, 0);
-                else if (mode < 8) c = varyCore (core, v, fp, s.family, vocab, ctx, 1, 0, 1000);
-                else c = makeFill (core, v, pickFill (v, s.family, false), ctx, fp, s.family);
+                if (mode < 4) c = varyCore (core, v, fp, s.family, vocab, ctx, 0, 1, 0, kickClear);
+                else if (mode < 8) c = varyCore (core, v, fp, s.family, vocab, ctx, 1, 0, 1000, kickClear);
+                else c = makeFill (core, v, pickFill (v, s.family, false), ctx, fp, s.family, kickClear);
             }
-            else if (label == "A'") c = varyCore (core, v, fp, s.family, vocab, ctx, 1, v.range (0, 1), 600);
+            else if (label == "A'") c = varyCore (core, v, fp, s.family, vocab, ctx, 1, 1, 500, kickClear); // one slot changes (v4)
             else if (label == "A''")
             {
                 // Explicit sequencing: function-argument evaluation order is unspecified
@@ -343,17 +361,17 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
                 // algorithmVersion 1 reference output.
                 const int pitchOps = v.range (1, 2);
                 const int rhythmOps = v.range (1, 2);
-                c = varyCore (core, v, fp, s.family, vocab, ctx, rhythmOps, pitchOps, 800);
+                c = varyCore (core, v, fp, s.family, vocab, ctx, rhythmOps, pitchOps, 800, kickClear);
             }
             else if (label == "B") c = answer;
-            else if (label == "B'") c = varyCore (answer, v, fp, s.family, vocab, ctx, 1, 1, 600);
+            else if (label == "B'") c = varyCore (answer, v, fp, s.family, vocab, ctx, 1, 1, 600, kickClear);
             else if (label == "F")
             {
                 const FillCell& fill = pickFill (v, s.family, false); // drawn first (reference order)
                 const bool fromCore = v.chancePermille (700);
-                c = makeFill (fromCore ? core : prevBase, v, fill, ctx, fp, s.family);
+                c = makeFill (fromCore ? core : prevBase, v, fill, ctx, fp, s.family, kickClear);
             }
-            else if (label == "F2") c = makeFill (core, v, pickFill (v, s.family, true), ctx, fp, s.family);
+            else if (label == "F2") c = makeFill (core, v, pickFill (v, s.family, true), ctx, fp, s.family, kickClear);
             else c = core;
             if (b + 1 == plan.size()) pitch::resolveEnding (c.slots, c.pitches, ctx, v);
             if (label != "F" && label != "F2") prevBase = c;

@@ -72,8 +72,10 @@ TEST_CASE (Metrics, FeelsAreStatisticallyDistinct)
         // stabby: clipped notes, lowest sounding ratio
         CHECK (st.shortR > ba.shortR + 0.2 && st.shortR > sy.shortR + 0.2);
         CHECK (st.sounding < ba.sounding && st.sounding < sy.sounding);
-        // syncopated: most syncopation, notes held through beats (long ratio)
-        CHECK (sy.sync > ba.sync && sy.sync > st.sync);
+        // syncopated: with a four-on-the-floor kick every v4 feel avoids the kick steps, so
+        // syncopation is high everywhere; Syncopated is the one that leaves the off-8th
+        // for the e/a 16ths (lower off-8th share) while staying more syncopated than Balanced
+        CHECK (sy.sync > ba.sync && sy.offbeat < ba.offbeat - 0.15);
         CHECK (sy.longR > st.longR);
         // rolling: offbeat bounce and ghost/short chains
         CHECK (ro.offbeat > bu.offbeat);

@@ -1,6 +1,18 @@
-## GrooveForge Bass 0.3.1 — versione preliminare
+## GrooveForge Bass 0.4.0 — versione preliminare
 
-### Novità della 0.3.1
+### Novità della 0.4.0: generatore riscritto per tech house e minimal tech
+Le linee della 0.3 non erano credibili: note sopra la cassa, melodie da "walking bass", seconda battuta trasposta come un cambio di accordo. La 0.4 applica le regole del genere, ricavate da una ricerca su tutorial di produzione e studi sul groove (dettagli in `docs/BASS_RESEARCH.md`).
+- **Il basso vive tra i colpi di cassa.** Con la cassa in 4/4 (impostazione predefinita) nessuna nota parte sul battito e ogni nota si chiude prima del colpo successivo.
+- **Fondamentale al centro.** Circa 3/4 delle note sono sulla fondamentale; i colori sono pochi e tipici del genere: ottava, quinta, settima minore, terza minore. Niente più scale che camminano.
+- **Accenti sul controtempo** (l'"and" tra un colpo di cassa e l'altro), dove sta il groove.
+- **Riff che si ripete** con un piccolo cambiamento per battuta e un fill alla fine della frase, costruito con note dell'accordo.
+- **Swing 55–57 %** di default, come nella tech house.
+- Note corte e lunghe alternate: le note sul controtempo durano fino alla cassa, le altre sono colpetti brevi.
+- Con il contesto ritmico "Broken" o "Open" (LIBRARY → ADVANCED) le note sul battito restano possibili.
+
+I progetti salvati si riaprono con le note esatte; gli stessi seed generano pattern nuovi.
+
+### Dalla 0.3.1
 - **Cursore Complexity** (0–100 %) accanto a Feel: decide quante note ha la linea dentro il feel scelto.
   - 50 % = densità naturale del feel (stesso risultato della 0.3.0).
   - Più alto = più note e più movimento; più basso = meno note e più spazio.
@@ -39,9 +51,9 @@ Generatore di linee di basso + sintetizzatore SUB/ACID. VST3 per Windows e macOS
 
 | Sistema | File | Contenuto |
 |---|---|---|
-| Windows 10/11 x64 | `GrooveForgeBass-0.3.1-win64-setup.exe` | Installer (amministratore): VST3 in `C:\Program Files\Common Files\VST3` + app standalone, con disinstallazione |
-| Windows 10/11 x64 | `GrooveForgeBass-0.3.1-win64.zip` | Stessi file senza installer (script `install-vst3-windows.ps1` incluso) |
-| macOS 11+ (Apple Silicon + Intel) | `GrooveForgeBass-0.3.1-macos-universal.dmg` | Installer `.pkg` con scelta VST3 / Audio Unit / app, guida e script di disinstallazione |
+| Windows 10/11 x64 | `GrooveForgeBass-0.4.0-win64-setup.exe` | Installer (amministratore): VST3 in `C:\Program Files\Common Files\VST3` + app standalone, con disinstallazione |
+| Windows 10/11 x64 | `GrooveForgeBass-0.4.0-win64.zip` | Stessi file senza installer (script `install-vst3-windows.ps1` incluso) |
+| macOS 11+ (Apple Silicon + Intel) | `GrooveForgeBass-0.4.0-macos-universal.dmg` | Installer `.pkg` con scelta VST3 / Audio Unit / app, guida e script di disinstallazione |
 
 I file `.sha256` contengono le impronte SHA-256 per verificare i download.
 

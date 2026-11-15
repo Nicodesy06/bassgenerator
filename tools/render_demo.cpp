@@ -1,6 +1,8 @@
 // Offline renderer: golden QA demos and blind-audition sets.
 //   render_demo --out DIR                 16 golden demos (.mid + .wav + demos.md)
 //   render_demo --audition N --out DIR    N random unedited examples, anonymised
+//   render_demo --with-drums ...          also write <name>_drums.wav with a synthetic
+//                                         four-on-the-floor kick + off-8th hat (listening context)
 //                                         file names + separate answer key CSV
 #include <cmath>
 #include <cstdio>
@@ -92,16 +94,57 @@ std::string pitchSummary (const Pattern& p)
     }
     return o.str();
 }
+/** Adds a simple synthetic kick on every quarter and a closed hat on every off-8th
+    (tool only: lets a listener judge the bass against a four-on-the-floor groove). */
+void addDrums (std::vector<float>& l, std::vector<float>& r, double bpm, int sr)
+{
+    const double beat = 60.0 / bpm * sr;
+    uint32_t noise = 12345u;
+    const auto n = l.size();
+    for (double t0 = 0; t0 < (double) n; t0 += beat / 2)
+    {
+        const bool kick = std::fmod (t0 / beat, 1.0) < 0.25;
+        const size_t s0 = (size_t) t0;
+        if (kick)
+        {
+            double phase = 0;
+            for (size_t i = 0; i < (size_t) (0.35 * sr) && s0 + i < n; ++i)
+            {
+                const double t = (double) i / sr;
+                const double f = 48.0 + 110.0 * std::exp (-t / 0.03);
+                phase += 2.0 * 3.141592653589793 * f / sr;
+                const float v = (float) (0.75 * std::sin (phase) * std::exp (-t / 0.18));
+                l[s0 + i] += v; r[s0 + i] += v;
+            }
+        }
+        else
+        {
+            float prev = 0;
+            for (size_t i = 0; i < (size_t) (0.04 * sr) && s0 + i < n; ++i)
+            {
+                noise = noise * 1664525u + 1013904223u;
+                const float w = (float) ((noise >> 8) & 0xFFFF) / 32768.0f - 1.0f;
+                const float hp = w - prev; // crude high-pass
+                prev = w;
+                const float v = 0.06f * hp * (float) std::exp (-(double) i / sr / 0.012);
+                l[s0 + i] += v; r[s0 + i] += v;
+            }
+        }
+    }
+    for (size_t i = 0; i < n; ++i) { l[i] = std::clamp (l[i], -1.0f, 1.0f); r[i] = std::clamp (r[i], -1.0f, 1.0f); }
+}
 } // namespace
 
 int main (int argc, char** argv)
 {
     std::string out = "reports/demos";
     int audition = 0;
+    bool withDrums = false;
     for (int i = 1; i < argc; ++i)
     {
         if (! std::strcmp (argv[i], "--out") && i + 1 < argc) out = argv[++i];
         else if (! std::strcmp (argv[i], "--audition") && i + 1 < argc) audition = std::atoi (argv[++i]);
+        else if (! std::strcmp (argv[i], "--with-drums")) withDrums = true;
     }
     std::filesystem::create_directories (out);
     const auto presets = factoryPresets();
@@ -165,6 +208,11 @@ int main (int argc, char** argv)
         const auto st = renderPattern (p, preset.params, d.bpm, std::max (1, 8 / p.bars), sr, l, r);
         failures += (st.finite && st.peak < 1.0 && st.rms > 0.005) ? 0 : 1;
         writeWav (out + "/audio/" + d.name + ".wav", l, r, sr);
+        if (withDrums)
+        {
+            addDrums (l, r, d.bpm, sr);
+            writeWav (out + "/audio/" + d.name + "_drums.wav", l, r, sr);
+        }
         md << "| " << d.name << " | " << theory::rootName (d.s.root) << ' ' << scaleDisplayName (d.s.scale) << ", " << toString (d.s.family) << ", "
            << toString (d.s.feel) << ", " << d.s.bars << " bar, S" << d.s.styleSeed << " V" << d.s.varSeed << " | " << toString (p.resolvedFeel) << " | "
            << p.phrasePlan << " | " << preset.name << " | " << d.bpm << " | " << p.notes.size() << " | " << std::hex << p.hash << std::dec << " | "

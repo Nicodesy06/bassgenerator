@@ -21,9 +21,10 @@ namespace
 constexpr int kNA = 999;
 constexpr int kRoles = (int) PitchRole::Count;
 //                                        Root Oct Fif FBl 7Bl 3rd 4th 2nd 6th 6Bl O3
-// v3: user dataset degrees: root 48 %, 5th 18 %, b7 13 %, 4th 7 %, b3 5 %, 2nd 4 %, octave jumps 2 %
-constexpr std::array<int, kRoles> kSubWeights  { 0,  2,  5,  3,  5,  3,  4,  3,  0,  1,  0 };
-constexpr std::array<int, kRoles> kAcidWeights { 0,  3,  5,  2,  5,  4,  4,  4,  2,  1,  1 };
+// v4 (docs/BASS_RESEARCH.md R3): colour tones of a root-centred club line --
+// octave, fifth, b7 below and b3 first; 4th/2nd/6th are rare (ACID only).
+constexpr std::array<int, kRoles> kSubWeights  { 0,  6,  5,  3,  4,  3,  1,  0,  0,  1,  0 };
+constexpr std::array<int, kRoles> kAcidWeights { 0,  5,  4,  2,  4,  4,  2,  2,  1,  1,  1 };
 
 int firstPresent (ScaleType s, std::initializer_list<int> ivs) noexcept
 {
@@ -48,72 +49,12 @@ int pickApproach (Rng& rng, const PitchContext& ctx)
     const int fifB = roleSemis (PitchRole::FifthBelow, ctx.scale);
     const int fifth = roleSemis (PitchRole::Fifth, ctx.scale);
     const std::array<int, 5> cand { second, sevB, fifB, fifth, 12 };
-    std::array<int, 5> w = ctx.family == Family::Sub ? std::array<int, 5> { 1, 3, 3, 2, 1 } : std::array<int, 5> { 3, 3, 1, 1, 2 };
+    std::array<int, 5> w = ctx.family == Family::Sub ? std::array<int, 5> { 0, 4, 2, 1, 2 } : std::array<int, 5> { 2, 4, 1, 1, 2 };
     for (size_t i = 0; i < cand.size(); ++i)
         if (cand[i] == kNA) w[i] = 0;
     return cand[(size_t) rng.pickWeighted (w.data(), (int) w.size())];
 }
 
-int rolePrior (PitchRole r) noexcept
-{
-    switch (r)
-    {
-        case PitchRole::Root: return 5;
-        case PitchRole::Fifth: case PitchRole::Octave: case PitchRole::FifthBelow: return 4;
-        default: return 3;
-    }
-}
-
-int transitionWeight (const VocabEntry& e, int prev, int prevLeap, int run, const NoteSlot& slot,
-                      const PitchContext& ctx, BarFunction fn, int slotIndex, int slotCount)
-{
-    const int iv = e.semis - prev;
-    const int a = std::abs (iv);
-    int w = rolePrior (e.role);
-    // v3 (user dataset): steps 43 %, repeats 22-33 %, fourth/fifth ~15 %, octave jumps 2 %
-    if (ctx.family == Family::Sub)
-    {
-        if (a == 0) w *= 2;
-        else if (a <= 2) w *= 5;
-        else if (a == 5 || a == 7) w *= 3;
-        else if (a <= 4) w *= 2;
-        else w *= 1; // octave and wide leaps are rare
-    }
-    else
-    {
-        if (a == 0) w *= 3;
-        else if (a <= 2) w *= 6;
-        else if (a <= 5) w *= 3;
-        else if (a == 7) w *= 2;
-        else w *= 1;
-    }
-    // after a leap, prefer to turn back (gap-fill) and forbid a second leap the same way
-    if (std::abs (prevLeap) > 5)
-    {
-        const bool sameDir = (iv > 0) == (prevLeap > 0) && iv != 0;
-        if (sameDir && a > 2) w = 0;
-        else if (! sameDir && iv != 0) w *= 2;
-    }
-    // stop endless repetition: Acid max 3 identical in a row, Sub max 4 (pedal contour 6)
-    const int maxRun = ctx.family == Family::Acid ? 3 : (ctx.contour == ContourHint::Pedal ? 5 : 3);
-    if (a == 0 && run >= maxRun) w = 0;
-    // accented notes lean on stable tones
-    if (slot.accent >= 2 && isStable (e.semis)) w *= 2;
-    switch (ctx.contour)
-    {
-        case ContourHint::Pedal:        if (e.semis == 0) w *= 3; break;
-        case ContourHint::OctaveBounce: if (e.semis == 0 || e.semis == 12) w *= 2; break;
-        case ContourHint::Stepwise:     if (a > 0 && a <= 2) w *= 2; break;
-        case ContourHint::RootFifth:    if (e.semis == 7 || e.semis == -5) w *= 2; break;
-        case ContourHint::Riff:         break;
-        case ContourHint::CallResponse:
-            if (slotIndex * 2 < slotCount) { if (e.semis == 0) w *= 2; }
-            else if (e.semis != 0) w *= 2;
-            break;
-    }
-    if (fn == BarFunction::Answer && e.semis != 0) w = w * 3 / 2;
-    return w;
-}
 } // namespace
 
 int minSemis (Family f) noexcept { return f == Family::Sub ? -7 : -5; }
@@ -152,17 +93,18 @@ MotifVocabulary chooseVocabulary (Rng& rng, const PitchContext& ctx)
         return true;
     };
 
-    int size = ctx.family == Family::Sub ? 1 + rng.range (3, 4) : 1 + rng.range (3, 5);
-    if (ctx.contour == ContourHint::Pedal) size = std::min (size, 3);
-    if (ctx.contour == ContourHint::Riff) size = std::clamp (size, 3, 4);
+    // v4: root + 1-2 colour tones (SUB) / 2-3 (ACID); pedal lines keep a single colour
+    int size = ctx.family == Family::Sub ? 1 + rng.range (1, 2) : 1 + rng.range (2, 3);
+    if (ctx.contour == ContourHint::Pedal) size = 2;
 
     switch (ctx.contour)
     {
         case ContourHint::RootFifth:    if (! add (rng.chancePermille (550) ? PitchRole::Fifth : PitchRole::FifthBelow)) add (PitchRole::Octave); break;
         case ContourHint::OctaveBounce: add (PitchRole::Octave); break;
-        case ContourHint::Stepwise:     if (! add (PitchRole::Second)) add (PitchRole::Third); add (PitchRole::SeventhBelow); break;
+        case ContourHint::Stepwise:     add (PitchRole::SeventhBelow); if (ctx.family == Family::Acid) add (PitchRole::Third); break;
         case ContourHint::CallResponse: if (! add (PitchRole::Fourth)) add (PitchRole::Fifth); break;
-        case ContourHint::Pedal: case ContourHint::Riff: break;
+        case ContourHint::Pedal:        add (PitchRole::Octave); break;
+        case ContourHint::Riff:         break;
     }
 
     auto weights = ctx.family == Family::Sub ? kSubWeights : kAcidWeights;
@@ -181,49 +123,71 @@ MotifVocabulary chooseVocabulary (Rng& rng, const PitchContext& ctx)
 std::vector<int> assignPitches (const std::vector<NoteSlot>& slots, const MotifVocabulary& vocab, Rng& rng,
                                 const PitchContext& ctx, BarFunction fn, int prevSemis)
 {
+    // v4 (docs/BASS_RESEARCH.md R2/R3): the position inside the beat decides
+    // the pitch role. `&` (off-8th) carries the tonic or its octave, `e` rolls
+    // on the tonic with occasional colour, `a` is the pickup/colour position.
+    // The tonic dominates; colours never walk by scale step.
     std::vector<int> out;
     out.reserve (slots.size());
-    int prev = prevSemis, prevLeap = 0, run = 0;
+    int prev = prevSemis, run = 0;
     const int count = (int) slots.size();
+    const int maxDistinct = ctx.family == Family::Acid ? 4 : 3;
+    std::vector<int> used;
     for (int i = 0; i < count; ++i)
     {
         const auto& sl = slots[(size_t) i];
+        const int pos = sl.step % 4; // 0 kick, 1 e, 2 &, 3 a
         int p = 0;
-        if (sl.role == Role::Ghost)
-        {
-            p = i == 0 ? 0 : prev;
-        }
-        else if (sl.role == Role::Octave)
-        {
-            p = 12;
-        }
-        else if (sl.role == Role::Approach)
-        {
-            p = pickApproach (rng, ctx);
-        }
-        else if (sl.role == Role::Anchor || (i == 0 && sl.step <= 2 && fn != BarFunction::Answer))
-        {
-            const int rootPermille = ctx.family == Family::Sub ? 900 : 760;
-            if (rng.chancePermille (rootPermille)) p = 0;
-            else
-            {
-                const std::array<int, 3> c { 12, roleSemis (PitchRole::Fifth, ctx.scale), roleSemis (PitchRole::FifthBelow, ctx.scale) };
-                std::array<int, 3> w { 3, c[1] == kNA ? 0 : 2, c[2] == kNA ? 0 : 1 };
-                p = c[(size_t) rng.pickWeighted (w.data(), 3)];
-            }
-        }
+        if (sl.role == Role::Ghost) p = i == 0 ? 0 : prev;
+        else if (sl.role == Role::Octave) p = 12;
+        else if (sl.role == Role::Approach) p = pickApproach (rng, ctx);
+        else if (sl.role == Role::Anchor || (i == 0 && fn != BarFunction::Answer))
+            p = rng.chancePermille (ctx.family == Family::Sub ? 920 : 820) ? 0 : 12;
         else
         {
             std::vector<int> w (vocab.entries.size());
             for (size_t k = 0; k < vocab.entries.size(); ++k)
-                w[k] = transitionWeight (vocab.entries[k], prev, prevLeap, run, sl, ctx, fn, i, count);
-            const int idx = rng.pickWeighted (w.data(), (int) w.size());
-            p = vocab.entries[(size_t) idx].semis;
+            {
+                const auto& e = vocab.entries[k];
+                const bool tonic = e.semis == 0;
+                const bool octave = e.semis == 12;
+                int x;
+                switch (pos)
+                {
+                    case 2:  x = tonic ? 10 : (octave ? 4 : 1); break;          // off-8th: the groove note
+                    case 1:  x = tonic ? 7 : (octave ? 3 : 2); break;           // e: roll
+                    case 3:  x = tonic ? 4 : 3; break;                          // a: pickup / colour
+                    default: x = tonic ? 9 : 1; break;                          // kick step (non four-floor contexts)
+                }
+                if (sl.accent >= 2 && ! (tonic || octave)) x = std::max (1, x / 2);
+                if (fn == BarFunction::Answer && ! tonic) x = x * 3 / 2 + 1;
+                // a colour is a flick: never repeat it more than twice
+                if (! tonic && e.semis == prev && run >= 2) x = 0;
+                // no leaps wider than an octave between consecutive notes
+                if (std::abs (e.semis - prev) > 12) x = 0;
+                // at most 3 (ACID 4) different pitches per bar
+                if ((int) used.size() >= maxDistinct && std::find (used.begin(), used.end(), e.semis) == used.end()) x = 0;
+                switch (ctx.contour)
+                {
+                    case ContourHint::Pedal:        if (tonic) x *= 2; break;
+                    case ContourHint::OctaveBounce: if (octave) x = x * 2 + 1; break;
+                    case ContourHint::RootFifth:    if (e.semis == 7 || e.semis == -5) x = x * 2 + 1; break;
+                    case ContourHint::CallResponse:
+                        if (i * 2 < count) { if (tonic) x *= 2; }
+                        else if (! tonic) x = x * 2 + 1;
+                        break;
+                    default: break;
+                }
+                w[k] = x;
+            }
+            int total = 0;
+            for (int x : w) total += x;
+            p = total > 0 ? vocab.entries[(size_t) rng.pickWeighted (w.data(), (int) w.size())].semis : 0;
         }
         p = clampToRegister (p, ctx.family);
         run = (p == prev && i > 0) ? run + 1 : 1;
-        prevLeap = i > 0 ? p - prev : 0;
         prev = p;
+        if (std::find (used.begin(), used.end(), p) == used.end()) used.push_back (p);
         out.push_back (p);
     }
     return out;
@@ -235,7 +199,10 @@ void varyPitches (const std::vector<NoteSlot>& slots, std::vector<int>& pitches,
     std::vector<int> cand;
     for (size_t i = 0; i < slots.size(); ++i)
         if (slots[i].role == Role::Normal || slots[i].role == Role::Approach)
-            if (i != 0) cand.push_back ((int) i);
+            if (i != 0 && slots[i].step % 4 != 2) cand.push_back ((int) i); // v4: the off-8th groove note stays
+    if (cand.empty())
+        for (size_t i = 1; i < slots.size(); ++i)
+            if (slots[i].role == Role::Normal) cand.push_back ((int) i);
     const int changes = std::min<int> (maxChanges, (int) cand.size());
     for (int c = 0; c < changes; ++c)
     {
@@ -250,8 +217,8 @@ void varyPitches (const std::vector<NoteSlot>& slots, std::vector<int>& pitches,
             const int s = vocab.entries[k].semis;
             if (s == cur) { w[k] = 0; continue; }
             const int a = std::abs (s - before);
-            w[k] = ctx.family == Family::Acid ? (a <= 2 ? 5 : (a <= 5 ? 3 : (a == 12 ? 2 : 1)))
-                                              : ((a == 5 || a == 7 || a == 12 || a == 0) ? 4 : (a <= 3 ? 2 : 1));
+            w[k] = s == 0 ? 4 : (s == 12 || s == 7 || s == -5 || s == -2 ? 3 : 2); // v4: root-centred colours
+            if (a > 12) w[k] = 0;
         }
         int total = 0;
         for (int x : w) total += x;
@@ -301,8 +268,22 @@ std::vector<int> fillPitches (const std::vector<NoteSlot>& slots, int fromStep, 
         int p = 0;
         switch (shape)
         {
-            case FillShape::RunUp:      p = transposeDiatonic (0, -(k - j), ctx.scale); break;
-            case FillShape::RunDown:    p = transposeDiatonic (12, -j, ctx.scale); break;
+            // v4: fills move between chord tones, never as scale runs
+            case FillShape::RunUp:
+            {
+                const int fifthBelow = roleSemis (PitchRole::FifthBelow, ctx.scale) == kNA ? -12 : -5;
+                const int seventhBelow = roleSemis (PitchRole::SeventhBelow, ctx.scale);
+                const int cyc[3] = { 0, fifthBelow, seventhBelow };
+                p = j == k - 1 ? seventhBelow : cyc[j % 3]; // ends on the b7 pickup into the root
+                break;
+            }
+            case FillShape::RunDown:
+            {
+                const int fifth = roleSemis (PitchRole::Fifth, ctx.scale) == kNA ? 0 : 7;
+                const int down[3] = { 12, roleSemis (PitchRole::SeventhBelow, ctx.scale) + 12, fifth };
+                p = down[std::min (j, 2)];
+                break;
+            }
             case FillShape::OctaveJump: p = (j % 2 == 0) ? 0 : 12; break;
             case FillShape::Approach:   p = (j == k - 1) ? transposeDiatonic (0, -1, ctx.scale) : (roleSemis (PitchRole::Fifth, ctx.scale) == kNA ? 12 : 7); break;
             case FillShape::Pedal:      p = (j == k - 1) ? 12 : 0; break;

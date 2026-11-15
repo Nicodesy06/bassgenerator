@@ -18,48 +18,40 @@ Status values: PASS (measured/observed), FAIL, PARTIAL, UNTESTED. Numbers below 
 
 ## 2. Automated tests (Linux, this session, 0.3.0)
 
-20/20 CTest entries passed on Linux (incl. new suites `Taste` and `TasteStore`, and UI tests for LIKE / DISLIKE / TASTE). Windows/macOS results: see the CI runs for the 0.3.0 commit.
+21/21 CTest entries passed on Linux for 0.4.0 (incl. suites `Taste`, `TasteStore`, `Complexity`, `Groove` and UI tests). Windows/macOS results: see the CI runs for the 0.3.0 commit.
 
-## 3. Generator statistics (algorithmVersion 3)
+## 3. Generator statistics (algorithmVersion 4)
 
-Source: `reports/diagnostics_summary.md` (4 200 patterns: 2 families × 7 feel settings × 300, bars cycling 1/2/4/8, random keys/scales/seeds, factory generator = no taste profile).
+Source: `reports/diagnostics_summary.md` (2800 patterns: 2 families × 7 feel settings × 200, bars cycling 1/2/4/8, random keys/scales/seeds, default four-on-the-floor kick context, factory generator). Design rationale: `docs/BASS_RESEARCH.md`.
 
 | Metric | Value |
 |---|---|
 | Invalid events / silent / out-of-scale / illegal overlaps | 0 / 0 / 0 / 0 |
 | Same settings → identical notes & hash | 100 % |
-| VAR-only change: onset Jaccard / note overlap | 0.96 / 0.95 |
-| STYLE change: onset Jaccard / note overlap | 0.37 / 0.19 |
-| Taste learning (12 synthetic ratings, `Taste.*`) | mean taste score 0.532 → 0.579; learned cells used in 39/150; disliked archetype 19 → 5 / 200 |
+| VAR-only change: onset Jaccard / note overlap | 0.96 / 0.93 |
+| STYLE change: onset Jaccard / note overlap | 0.54 / 0.43 |
+| Four-on-the-floor: notes starting on a kick / sounding across a kick (non-slide) | 0 / 0 (`Groove.FourOnFloorKickLaneIsFree`) |
+| Accents on the off-8th | 100 % (`Groove.AccentsSitOnTheOffEighth`) |
+| Mean root share (4-bar, all feels) | SUB 0.77, ACID 0.67 (`Groove.RootCentredAndFewPitchesPerBar`) |
 
-Feel/family means (selected features; mean note length in 16ths, sounding = fraction of the loop with a note sounding):
+Feel/family means (kick = share of onsets on the four kick beats; mean length in 16ths):
 
-| Group | onsets/bar | syncopation | off-8th | mean len | sounding | longest rest | distinct pitches | step ratio | octave jumps | distinct bars |
-|---|---|---|---|---|---|---|---|---|---|---|
-| SUB Sparse | 3.42 | 0.58 | 0.50 | 2.14 | 0.45 | 5.62 | 2.82 | 0.20 | 0.03 | 0.51 |
-| SUB Balanced | 6.05 | 0.55 | 0.44 | 1.70 | 0.63 | 2.70 | 3.65 | 0.24 | 0.07 | 0.51 |
-| SUB Busy | 9.96 | 0.55 | 0.30 | 1.17 | 0.73 | 1.63 | 3.94 | 0.25 | 0.03 | 0.49 |
-| SUB Rolling | 9.35 | 0.71 | 0.40 | 1.12 | 0.64 | 2.05 | 3.75 | 0.22 | 0.04 | 0.50 |
-| SUB Syncopated | 6.00 | 0.66 | 0.35 | 1.86 | 0.69 | 2.90 | 3.72 | 0.27 | 0.04 | 0.51 |
-| SUB Stabby | 4.99 | 0.57 | 0.40 | 0.45 | 0.14 | 5.36 | 3.39 | 0.17 | 0.05 | 0.51 |
-| ACID Sparse | 3.58 | 0.46 | 0.52 | 2.21 | 0.48 | 5.21 | 3.37 | 0.52 | 0.03 | 0.50 |
-| ACID Balanced | 6.08 | 0.54 | 0.42 | 1.72 | 0.65 | 2.64 | 3.99 | 0.48 | 0.03 | 0.50 |
-| ACID Busy | 10.11 | 0.54 | 0.33 | 1.01 | 0.63 | 1.82 | 4.44 | 0.52 | 0.02 | 0.50 |
-| ACID Rolling | 8.79 | 0.59 | 0.41 | 1.20 | 0.65 | 1.86 | 4.52 | 0.46 | 0.05 | 0.49 |
-| ACID Syncopated | 5.96 | 0.63 | 0.37 | 1.85 | 0.68 | 2.76 | 3.80 | 0.48 | 0.03 | 0.49 |
-| ACID Stabby | 5.47 | 0.59 | 0.31 | 0.40 | 0.14 | 4.94 | 3.77 | 0.48 | 0.02 | 0.51 |
+| Group | onsets/bar | syncopation | off-8th | kick | mean len | sounding | distinct pitches | step ratio | octave jumps | root share | distinct bars |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| SUB Sparse | 3.58 | 0.67 | 0.67 | 0.00 | 1.33 | 0.30 | 2.62 | 0.02 | 0.17 | 0.78 | 0.55 |
+| SUB Balanced | 5.96 | 0.71 | 0.58 | 0.00 | 1.23 | 0.45 | 2.75 | 0.02 | 0.10 | 0.69 | 0.57 |
+| SUB Busy | 9.74 | 0.82 | 0.35 | 0.00 | 0.70 | 0.43 | 2.90 | 0.03 | 0.22 | 0.80 | 0.60 |
+| SUB Rolling | 9.49 | 0.80 | 0.41 | 0.00 | 0.75 | 0.44 | 2.67 | 0.01 | 0.27 | 0.83 | 0.54 |
+| SUB Syncopated | 5.82 | 0.83 | 0.34 | 0.00 | 1.13 | 0.41 | 2.79 | 0.07 | 0.15 | 0.76 | 0.56 |
+| SUB Stabby | 5.04 | 0.80 | 0.40 | 0.00 | 0.44 | 0.14 | 2.70 | 0.03 | 0.18 | 0.76 | 0.58 |
+| ACID Sparse | 3.53 | 0.75 | 0.49 | 0.00 | 1.23 | 0.27 | 3.19 | 0.14 | 0.13 | 0.68 | 0.59 |
+| ACID Balanced | 6.07 | 0.68 | 0.63 | 0.00 | 1.00 | 0.37 | 3.46 | 0.09 | 0.12 | 0.65 | 0.58 |
+| ACID Busy | 9.82 | 0.83 | 0.35 | 0.00 | 0.59 | 0.36 | 3.75 | 0.15 | 0.15 | 0.69 | 0.60 |
+| ACID Rolling | 8.39 | 0.76 | 0.48 | 0.00 | 0.72 | 0.38 | 3.86 | 0.10 | 0.28 | 0.73 | 0.61 |
+| ACID Syncopated | 6.00 | 0.81 | 0.37 | 0.00 | 1.07 | 0.40 | 3.53 | 0.14 | 0.09 | 0.62 | 0.56 |
+| ACID Stabby | 5.26 | 0.84 | 0.32 | 0.00 | 0.38 | 0.12 | 3.37 | 0.13 | 0.11 | 0.63 | 0.59 |
 
-Comparison with the user's 14 hand-made files (`tools/reference_analyzer`, aggregates only):
-
-| Metric | user files | v1 (0.1.0) typical | v3 |
-|---|---|---|---|
-| mean note length (16ths) | 2.1 | 0.7–1.4 | 1.0–2.2 (Stabby 0.4 by design) |
-| sounding ratio | 0.77 | 0.29–0.60 | 0.45–0.73 |
-| 1–2 semitone steps | 0.43 | 0.05–0.08 SUB / 0.36–0.47 ACID | 0.17–0.27 SUB / 0.46–0.52 ACID |
-| octave jumps | 0.02 | 0.08–0.19 | 0.02–0.07 |
-| distinct bars | 0.44 | 0.74 | 0.49–0.51 |
-
-SUB is deliberately kept more root-centred than the user's files (a sub line with 43 % steps stops sounding like a sub); taste learning moves it further if the user's ratings ask for it. Known weak spot: SUB Rolling vs SUB Busy differ mainly by syncopation, not density.
+Reading: the bass now lives between the kicks in every feel (kick = 0), so the syncopation index is uniformly high; feels differ by density, by how much of the line sits on the off-8th versus the e/a 16ths (Syncopated lowest off-8th share), by note length (Stabby shortest) and by rests (Sparse longest). Pitch content is root-centred with octave/fifth/♭7 colours; SUB uses almost no scale steps, ACID a moderate amount. Known limits: no listening test yet; v3's user-dataset priors are retired (v3 output was rejected by the user).
 
 Golden demos: 16 patterns (`reports/demos/demos.md`, `.mid` committed, `.wav` reproducible with `render_demo`). Listening status: **not yet auditioned** (protocol in TEST_PLAN.md; 48-clip blind set reproducible with `render_demo --audition 48`).
 

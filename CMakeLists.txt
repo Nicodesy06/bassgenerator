@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(GrooveForgeBass VERSION 0.3.1 LANGUAGES C CXX)
+project(GrooveForgeBass VERSION 0.4.0 LANGUAGES C CXX)
 
 # Static MSVC runtime (/MT): the plug-in DLL must load on machines without the
 # Visual C++ Redistributable. A missing VCRUNTIME140.dll makes hosts silently

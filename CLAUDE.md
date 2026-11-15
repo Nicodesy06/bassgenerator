@@ -12,7 +12,8 @@ xvfb-run -a ctest --test-dir build --output-on-failure      # GUI/host tests nee
 build/tests/gfb_tests Generator.                             # one suite (substring filter)
 build/tools/pattern_diagnostics --count 300 --out reports    # statistics report
 build/tools/pattern_diagnostics --explain 1234 5 ROLLING ACID 4
-build/tools/render_demo --out reports/demos                  # golden demos (.mid/.wav)
+build/tools/render_demo --out reports/demos [--with-drums]   # golden demos (.mid/.wav, optional kick+hat mix)
+build/tools/pattern_dump ROLLING SUB 4 4 [cx] [seed]         # read patterns as a 16th text grid
 ```
 
 Windows: `cmake --preset windows-x64-release`, `cmake --build --preset windows-x64-release`, `ctest --preset windows-x64-release`, or `scripts/*.ps1`.
@@ -27,6 +28,7 @@ Windows: `cmake --preset windows-x64-release`, `cmake --build --preset windows-x
 - Taste learning: an empty `TasteProfile` must reproduce the factory generator exactly (`Taste.EmptyProfileEqualsFactory`). Tests must never touch the user's real `taste.json`/`favorites.json` (use `GFB_TASTE_FILE` / explicit files).
 - Reference datasets: never commit third-party or user MIDI files (the repo is public). Store only aggregate integers (`src/core/ReferencePriors.h` via `tools/reference_analyzer --emit-priors`). Style cells must be original, never transcriptions of an artist's track.
 - Windows build uses the static MSVC runtime (`CMAKE_MSVC_RUNTIME_LIBRARY`); keep it, CI checks the VST3 imports. The installer is admin-only and installs to Common Files\VST3.
+- Genre rules (v4, `docs/BASS_RESEARCH.md`): with FourOnFloor no onset on a kick step and no non-slide note across a kick (`Groove.*` tests); keep the tonic dominant and accents on the off-8th.
 - Corpus edits: keep grids rotation-unique and inside the feel's density bounds (tests enforce it).
 - Do not claim DAW compatibility without testing; update `docs/DAW_COMPATIBILITY.md`.
 - JUCE is AGPLv3/commercial: see LICENSE-THIRD-PARTY.md before distributing binaries.

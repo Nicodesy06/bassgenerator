@@ -8,23 +8,29 @@ namespace gfb::phrase
 {
 namespace
 {
-// Templates and weights. Since algorithmVersion 3 the repetitive forms found in
-// the user's dataset (A B A B, A A A A', A A' A A') carry the most weight.
+constexpr int64_t kKickReleaseTicks = 40;
+}
+
+namespace
+{
+// Templates and weights. v4 (docs/BASS_RESEARCH.md 2.3/2.5): a one-bar riff that
+// repeats with one small change per bar and a turnaround at the phrase end;
+// alternating A B forms are rarer.
 struct Template { std::vector<std::string> labels; int weight; };
 
 const std::vector<Template>& templatesFor (int bars)
 {
     static const std::vector<Template> t1 { { { "A*" }, 1 } };
-    static const std::vector<Template> t2 { { { "A", "A'" }, 3 }, { { "A", "B" }, 3 } };
+    static const std::vector<Template> t2 { { { "A", "A'" }, 5 }, { { "A", "B" }, 2 } };
     static const std::vector<Template> t4 {
-        { { "A", "A'", "B", "F" }, 2 }, { { "A", "B", "A'", "F" }, 1 }, { { "A", "A'", "A", "F" }, 2 },
-        { { "A", "B", "A", "B" }, 4 }, { { "A", "A", "A", "A'" }, 3 }, { { "A", "A'", "A", "A'" }, 3 } };
+        { { "A", "A'", "B", "F" }, 1 }, { { "A", "B", "A'", "F" }, 1 }, { { "A", "A'", "A", "F" }, 3 },
+        { { "A", "B", "A", "B" }, 1 }, { { "A", "A", "A", "A'" }, 4 }, { { "A", "A'", "A", "A'" }, 3 } };
     static const std::vector<Template> t8 {
         { { "A", "A'", "B", "F", "A", "A''", "B'", "F2" }, 1 },
         { { "A", "A'", "A", "B", "A", "A'", "B'", "F2" }, 1 },
         { { "A", "B", "A'", "F", "A", "B'", "A''", "F2" }, 1 },
-        { { "A", "B", "A", "B", "A", "B", "A", "B'" }, 4 },
-        { { "A", "A", "A", "A'", "A", "A", "A", "F" }, 3 },
+        { { "A", "B", "A", "B", "A", "B", "A", "B'" }, 1 },
+        { { "A", "A", "A", "A'", "A", "A", "A", "F" }, 5 },
         { { "A", "A'", "A", "A'", "A", "A'", "A", "F2" }, 3 } };
     switch (bars)
     {
@@ -124,11 +130,18 @@ Pattern renderBars (const std::vector<BarRealisation>& bars, const ArticulationP
         e.accent = x.accent >= 2;
         const bool slideOk = x.slide && i + 1 < t.size() && t[i + 1].midi != x.midi && t[i + 1].absStep == x.absStep + x.lenSteps;
         e.slideToNext = slideOk;
+        if (ap.kickClear && ! slideOk)
+        {
+            // release ~1/24 beat before the next quarter-note kick
+            const int64_t nextKick = (x.start / kPPQ + 1) * kPPQ;
+            dur = std::min<int64_t> (dur, nextKick - x.start - kKickReleaseTicks);
+        }
         dur = std::min (dur, nextStart - x.start);
         e.durationTicks = std::max<int64_t> (std::min<int64_t> (kMinNoteDurationTicks, nextStart - x.start), dur);
         int vel;
-        if (ap.family == Family::Sub) vel = x.accent >= 2 ? 112 : (x.accent == 0 ? 60 : 94);
-        else vel = x.accent >= 2 ? 120 : (x.accent == 0 ? 58 : 86);
+        // ghosts sit well below the main notes (v4: ~40-50 % of the accent velocity)
+        if (ap.family == Family::Sub) vel = x.accent >= 2 ? 112 : (x.accent == 0 ? 50 : 94);
+        else vel = x.accent >= 2 ? 120 : (x.accent == 0 ? 48 : 86);
         if (x.role == Role::Anchor) vel += 4;
         e.velocity = (uint8_t) std::clamp (vel, 1, 127);
         p.notes.push_back (e);
