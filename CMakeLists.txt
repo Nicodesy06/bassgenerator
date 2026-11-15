@@ -36,6 +36,7 @@ add_library(gfb_core STATIC
     src/core/PatternMetrics.cpp
     src/core/PatternGenerator.cpp
     src/core/PatternHistory.cpp
+    src/core/TasteProfile.cpp
     src/core/Serialization.cpp
     src/dsp/Envelope.cpp
     src/dsp/Filter.cpp

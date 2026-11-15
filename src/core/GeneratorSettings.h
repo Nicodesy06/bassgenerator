@@ -33,6 +33,7 @@ struct GeneratorSettings
     uint64_t varSeed = 1;
     KickContext kickContext = KickContext::FourOnFloor;
     int swing = kAutoSwing;                        // -1 = feel default, else 50..66 (%)
+    bool chromatic = false;                        // labelled chromatic embellishment mode (approach notes)
 
     bool operator== (const GeneratorSettings&) const = default;
 };

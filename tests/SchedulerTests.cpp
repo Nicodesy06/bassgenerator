@@ -74,8 +74,8 @@ TEST_CASE (Scheduler, NoteOnsAtExpectedSamplesAcrossBlockSizes)
         Sim sim (p);
         const int64_t loops = 3;
         const double samplesPerTick = 48000.0 * 60.0 / (124.0 * kPPQ);
-        const int64_t total = (int64_t) (loops * p.lengthTicks() * samplesPerTick) + 10;
-        while (sim.samplePos < total) sim.block (bs);
+        const int64_t total = (int64_t) (loops * p.lengthTicks() * samplesPerTick) - 1; // exactly 3 loops (a note at tick 0 of loop 4 must not count)
+        while (sim.samplePos < total) sim.block ((int) std::min<int64_t> (bs, total - sim.samplePos));
         std::vector<int64_t> ons;
         for (auto& e : sim.events) if (e.ev.type == SynthEvent::Type::NoteOn) ons.push_back (e.sample);
         REQUIRE ((int64_t) ons.size() == loops * (int64_t) p.notes.size());

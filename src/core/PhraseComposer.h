@@ -35,6 +35,8 @@ struct ArticulationParams
 namespace phrase
 {
 int templateCount (int bars) noexcept;
+/** Weighted choice of a template index (STYLE stream). */
+int pickTemplateIndex (int bars, Rng& rng);
 /** Bar labels of template `index` for a phrase of `bars` bars. */
 std::vector<std::string> phraseTemplate (int bars, int index);
 

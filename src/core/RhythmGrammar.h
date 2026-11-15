@@ -46,7 +46,7 @@ struct NoteSlot
 enum class Mutation : uint8_t
 {
     RemoveOnset, AddOnset, SplitNote, MergeNotes, Anticipate, DelayEntry,
-    AccentShift, GhostNote, OctavePunct, Pickup, SlideToggle, Count
+    AccentShift, GhostNote, OctavePunct, Pickup, SlideToggle, Extend, Count
 };
 constexpr int kNumMutations = (int) Mutation::Count;
 std::string_view toString (Mutation) noexcept;

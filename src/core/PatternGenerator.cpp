@@ -22,7 +22,9 @@ Feel resolveFeel (Feel f, Rng& rng)
 uint8_t familyBit (Family f) noexcept { return f == Family::Sub ? kFamSub : kFamAcid; }
 uint8_t kickBit (KickContext k) noexcept { return k == KickContext::FourOnFloor ? kFitFour : (k == KickContext::Broken ? kFitBroken : kFitOpen); }
 
-std::vector<const RhythmArchetype*> archetypePool (Feel feel, Family fam, std::vector<int>& weights, KickContext kick)
+std::vector<const RhythmArchetype*> archetypePool (Feel feel, Family fam, std::vector<int>& weights, KickContext kick,
+                                                   const TasteProfile* taste, const std::vector<RhythmArchetype>& learned,
+                                                   const std::vector<int>& learnedWeights)
 {
     std::vector<const RhythmArchetype*> pool;
     weights.clear();
@@ -35,9 +37,17 @@ std::vector<const RhythmArchetype*> archetypePool (Feel feel, Family fam, std::v
         if (w == 0) continue;
         if (a.families != kFamBoth) w += 2;              // family-specific grooves preferred
         if (a.kickFit & kickBit (kick)) w *= 2;          // context prior
+        if (taste != nullptr) w = std::max (1, w * taste::archetypePermille (*taste, a.id) / 1000);
         pool.push_back (&a);
         weights.push_back (w);
     }
+    // cells learned from the user's LIKEs (same feel + family)
+    for (size_t i = 0; i < learned.size(); ++i)
+        if (learned[i].feel == feel && (learned[i].families & familyBit (fam)))
+        {
+            pool.push_back (&learned[i]);
+            weights.push_back (6 + 3 * learnedWeights[i]); // liked cells: strong preference
+        }
     return pool;
 }
 
@@ -147,8 +157,25 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
     const FeelProfile& fp = feelProfile (feel);
     rep.resolvedFeel = feel;
 
+    // personal corpus from the taste profile (string_views point into opts.taste, alive for this call)
+    std::vector<RhythmArchetype> learned;
+    std::vector<int> learnedWeights;
+    if (opts.taste != nullptr)
+    {
+        int idx = 0;
+        for (const auto& c : opts.taste->cells)
+        {
+            const auto& fp0 = feelProfile (c.feel);
+            const int n = rhythm::onsetCount (rhythm::parseGrid (c.grid));
+            if (n >= fp0.minOnsets && n <= fp0.maxOnsets)
+                learned.push_back ({ 9000 + idx, "Learned", c.grid, c.feel, Feel::Random, familyBit (c.family), kFitAll,
+                                     ContourHint::Stepwise, 58, "cell learned from a LIKE" }),
+                learnedWeights.push_back (c.weight);
+            ++idx;
+        }
+    }
     std::vector<int> poolW;
-    auto pool = archetypePool (feel, s.family, poolW, s.kickContext);
+    auto pool = archetypePool (feel, s.family, poolW, s.kickContext, opts.taste, learned, learnedWeights);
     if (pool.empty()) // cannot happen with the shipped corpus (tested), defensive only
     {
         for (const auto& a : rhythmCorpus()) { pool.push_back (&a); poolW.push_back (1); }
@@ -171,7 +198,7 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
     if (s.family == Family::Acid && ctx.contour == ContourHint::Pedal && styleRng.chancePermille (500)) ctx.contour = ContourHint::Riff;
     const MotifVocabulary vocab = pitch::chooseVocabulary (styleRng, ctx);
 
-    const int tmplIdx = (int) styleRng.below ((uint32_t) phrase::templateCount (s.bars));
+    const int tmplIdx = phrase::pickTemplateIndex (s.bars, styleRng);
     const auto plan = phrase::phraseTemplate (s.bars, tmplIdx);
     const std::array<int, 3> ansWeights = s.family == Family::Sub ? std::array<int, 3> { 2, 3, 1 } : std::array<int, 3> { 3, 2, 2 };
     const AnswerType ansType = (AnswerType) styleRng.pickWeighted (ansWeights.data(), 3);
@@ -181,8 +208,8 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
     const int swing = effectiveSwing (s, feel, arch.maxSwing);
 
     ArticulationParams ap { feel, s.family, s.root, s.scale, s.octave, swing };
-    EvalContext coreEval { feel, s.family, s.kickContext, false };
-    EvalContext fullEval { feel, s.family, s.kickContext, true };
+    EvalContext coreEval { feel, s.family, s.kickContext, false, opts.taste };
+    EvalContext fullEval { feel, s.family, s.kickContext, true, opts.taste };
 
     auto finishMeta = [&] (Pattern& p) {
         p.settings = s;
@@ -193,6 +220,7 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
         for (auto& l : plan) planStr += (planStr.empty() ? "" : " ") + l;
         p.phrasePlan = planStr;
         p.swingPercent = swing;
+        p.tasteRevision = opts.taste != nullptr ? opts.taste->revision : 0;
     };
 
     // core motif A: best of N style candidates
@@ -345,6 +373,31 @@ Pattern generatePattern (const GeneratorSettings& in, const GenerationOptions& o
     {
         const int jitter = n.accent ? ex.range (0, 4) : ex.range (-3, 3);
         n.velocity = (uint8_t) std::clamp ((int) n.velocity + jitter, 1, 127);
+    }
+    // ------------------------------- optional chromatic approach notes (own stream)
+    if (s.chromatic && best.notes.size() > 2)
+    {
+        Rng ch (deriveSeed (varBase, "chromatic"));
+        int lastBar = -1;
+        size_t lockedTarget = 0; // the note an approach resolves to is never altered itself
+        for (size_t i = 1; i + 1 < best.notes.size(); ++i)
+        {
+            if (i == lockedTarget) continue;
+            auto& n = best.notes[i];
+            const auto& next = best.notes[i + 1];
+            const int step = tickToStep (n.startTick);
+            const int bar = step / kStepsPerBar;
+            if (bar == lastBar || step % 4 == 0 || n.accent) continue; // weak positions only, max one per bar
+            const int d = (int) next.midiNote - (int) n.midiNote;
+            if (d == 0 || std::abs (d) > 5) continue;
+            const int approach = (int) next.midiNote + (d > 0 ? -1 : 1); // a semitone before the target
+            if (approach < 0 || approach > 127 || theory::inScale (s.root, s.scale, approach % 12)) continue;
+            if (approach == (int) best.notes[i - 1].midiNote) continue;
+            if (! ch.chancePermille (300)) continue;
+            n.midiNote = (uint8_t) approach;
+            lastBar = bar;
+            lockedTarget = i + 1;
+        }
     }
     std::string err = validatePattern (best);
     if (! err.empty()) normalisePattern (best);

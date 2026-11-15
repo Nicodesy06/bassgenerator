@@ -9,11 +9,12 @@ add_executable(gfb_tests
     MidiExportTests.cpp
     SchedulerTests.cpp
     DspTests.cpp
-    RealtimeTests.cpp)
+    RealtimeTests.cpp
+    TasteTests.cpp)
 target_link_libraries(gfb_tests PRIVATE gfb_core)
 target_include_directories(gfb_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-foreach(suite Theory Seed Corpus Rhythm Settings Generator History Serialization Metrics Midi Scheduler Dsp Realtime)
+foreach(suite Theory Seed Corpus Rhythm Settings Generator History Serialization Metrics Midi Scheduler Dsp Realtime Taste)
     add_test(NAME ${suite} COMMAND gfb_tests "${suite}.")
     set_tests_properties(${suite} PROPERTIES TIMEOUT 900)
 endforeach()

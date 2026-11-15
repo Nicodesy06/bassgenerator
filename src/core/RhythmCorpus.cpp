@@ -11,7 +11,7 @@ using C = ContourHint;
 constexpr F None = F::Random;
 
 // clang-format off
-constexpr std::array<RhythmArchetype, 57> kCorpus {{
+constexpr std::array<RhythmArchetype, 81> kCorpus {{
     // ----------------------------------------------------------------- SPARSE
     { 101, "Offbeat Pair",      "..X--.....X-....", F::Sparse, None,       kFamSub,  kFitFour | kFitOpen, C::Pedal,        58, "two long offbeat notes leaving every kick free" },
     { 102, "Late Ghost",        "..X-......x-.g..", F::Sparse, None,       kFamSub,  kFitFour,            C::RootFifth,    58, "offbeat statement with a ghost answer before the bar line" },
@@ -60,7 +60,7 @@ constexpr std::array<RhythmArchetype, 57> kCorpus {{
     { 503, "Anchor Tresillo",   "A--X--x-.xX-..X-", F::Syncopated, None,    kFamBoth, kFitBroken,         C::Riff,         56, "tresillo opening and offbeat answer" },
     { 504, "Anticipations",     "...X-..X-..X-.x.", F::Syncopated, F::Sparse, kFamSub, kFitFour,          C::Pedal,        56, "every beat anticipated by a 16th" },
     { 505, "Late Dotted",       ".X-.X-.X-.xX-.x.", F::Syncopated, None,    kFamBoth, kFitAll,            C::Stepwise,     56, "dotted chain starting on the e" },
-    { 506, "Push Grid",         "..X-.X-x-..X-..x", F::Syncopated, None,    kFamSub,  kFitFour,           C::OctaveBounce, 56, "pushed 3-step chain with a bar-end pickup" },
+    { 506, "Push Grid",         "..X-.X-x-..X-.x.", F::Syncopated, None,    kFamSub,  kFitFour,           C::OctaveBounce, 56, "pushed 3-step chain with a bar-end pickup" },
     { 507, "Acid Displace",     "X~x.x~X-..x~X-..", F::Syncopated, None,    kFamAcid, kFitBroken | kFitOpen, C::Riff,      56, "displaced acid slides" },
     { 508, "Acid Hiccup",       "..Xx-.X..x-.X-x.", F::Syncopated, None,    kFamAcid, kFitFour,           C::Stepwise,     56, "hiccup doubles around offbeats" },
     { 509, "Anchor Push",       "A-.X-..X..X-.Xx.", F::Syncopated, None,    kFamBoth, kFitBroken,         C::CallResponse, 56, "anchor then pushes against the grid" },
@@ -75,6 +75,32 @@ constexpr std::array<RhythmArchetype, 57> kCorpus {{
     { 607, "Clave Stab",        "X..X..X.X..X..X.", F::Stabby, F::Syncopated, kFamBoth, kFitBroken | kFitOpen, C::Riff,  54, "3-3-2 clave-like stabs" },
     { 608, "Acid Pecks",        "..X.x...X.x...xX", F::Stabby, None,        kFamAcid, kFitFour,           C::Stepwise,     56, "pecking acid stabs with an end flick" },
     { 609, "Front Stabs",       "X.x.....X.x.X...", F::Stabby, None,        kFamSub,  kFitBroken,         C::RootFifth,    54, "front-loaded half-bar stabs" },
+    // ------------------------------------------------- USER DATASET (rhythm cells from the user's own MIDI)
+    { 701, "User Hold Lift", "A-...xx-.xx--x--", F::Syncopated, None, kFamBoth, kFitAll, C::Stepwise, 56, "user dataset: held root, late double, long answer" },
+    { 702, "User Drop Three", "A-.x..x.x-..x-..", F::Balanced, None, kFamBoth, kFitAll, C::Riff, 56, "user dataset: 3-3-2 opening with held answers" },
+    { 703, "User Tresillo Run", "A-.x-xx-..x-x-x-", F::Balanced, F::Rolling, kFamBoth, kFitAll, C::Stepwise, 56, "user dataset: tresillo cell then off-8th walk" },
+    { 704, "User Tresillo Gap", "A-.x-xx-......xx", F::Syncopated, None, kFamBoth, kFitAll, C::CallResponse, 56, "user dataset: tresillo cell, silence, pickup pair" },
+    { 705, "User Tresillo Drive", "A-.x-xx-x-x-x-x-", F::Rolling, F::Busy, kFamBoth, kFitAll, C::Stepwise, 56, "user dataset: tresillo cell into an 8th-note drive" },
+    { 706, "User Push Answer", "A-.x-.x-x-xx-...", F::Balanced, None, kFamBoth, kFitAll, C::Riff, 56, "user dataset: pushes then a held double" },
+    { 707, "User Push Walk", "A-.x-.xxx-.x-.x-", F::Syncopated, None, kFamBoth, kFitAll, C::Stepwise, 56, "user dataset: push cell with a walking second half" },
+    { 708, "User Space Walk", "A-....x-x-..x-.x", F::Sparse, F::Balanced, kFamBoth, kFitAll, C::Stepwise, 56, "user dataset: long gap then a walk to the bar end" },
+    { 709, "User Late Walk", "..x-..x-x-.x--x-", F::Balanced, None, kFamBoth, kFitAll, C::Stepwise, 56, "user dataset: late entry, held walking line" },
+    { 710, "User Long Steps", "A---x--x-x-x----", F::Syncopated, None, kFamBoth, kFitAll, C::Stepwise, 54, "user dataset: long root, rising 3-2-2 steps" },
+    { 711, "User Pedal Burst", "AxxX.x.xx.x-x-x-", F::Busy, None, kFamBoth, kFitAll, C::Pedal, 54, "user dataset: pedal burst then 8ths" },
+    { 712, "User Long Four", "A---..x---x---x-", F::Sparse, None, kFamBoth, kFitAll, C::Stepwise, 54, "user dataset: four long notes climbing" },
+    // ------------------------------------- STYLE CELLS (original, written for this project)
+    { 801, "Swing Pop", ".xX-.xo-.xX-..xX", F::Rolling, None, kFamBoth, kFitFour | kFitOpen, C::OctaveBounce, 60, "swung offbeat 16ths with an octave pop (playful tech-house)" },
+    { 802, "Funk Answer", "A-.x.xX-..x-.xo.", F::Syncopated, None, kFamBoth, kFitAll, C::CallResponse, 60, "funky answer phrase ending on an octave" },
+    { 803, "Bounce Root Fifth", "..X-.x.x..X-.xx-", F::Balanced, None, kFamSub, kFitFour, C::RootFifth, 60, "bouncy house root/fifth offbeat groove" },
+    { 804, "Shuffle Octave", "A-.o..X-.x.o..X-", F::Balanced, None, kFamBoth, kFitAll, C::OctaveBounce, 60, "shuffled octave jumps around a held root" },
+    { 805, "Hypnotic Roll", "Ax.xAx.xAx.xA-x.", F::Busy, None, kFamSub, kFitBroken | kFitOpen, C::Pedal, 54, "hypnotic one-note roll (minimal / tech)" },
+    { 806, "Motor Gap", ".xxx.xx..xxx.xxX", F::Rolling, None, kFamSub, kFitFour, C::Pedal, 54, "repetitive motor with a breathing gap" },
+    { 807, "Percussive Stab", "X..x...xX..x..x.", F::Stabby, None, kFamBoth, kFitBroken | kFitOpen, C::Riff, 54, "percussive minimal stabs" },
+    { 808, "Rubber Hit", "..X..x.X...x.X..", F::Stabby, None, kFamBoth, kFitFour, C::RootFifth, 54, "rubbery offbeat hits with space" },
+    { 809, "Minimal Push", "...X-..x..X-..x.", F::Sparse, None, kFamSub, kFitFour, C::Pedal, 56, "minimal pushes against the kick" },
+    { 810, "Organic Walk", "A-x-X-.xA-x-X-x-", F::Balanced, None, kFamBoth, kFitAll, C::Stepwise, 58, "organic legato walking line (melodic house)" },
+    { 811, "Melodic Glide", "A--x~X--.x-x~X-.", F::Balanced, None, kFamAcid, kFitAll, C::Stepwise, 58, "melodic line with two glides" },
+    { 812, "Warm Answer", "X-.x-x-.X---X-x-", F::Syncopated, None, kFamBoth, kFitAll, C::CallResponse, 58, "warm held call and answer" },
 }};
 
 constexpr std::array<FillCell, 10> kFills {{

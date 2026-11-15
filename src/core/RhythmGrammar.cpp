@@ -8,15 +8,16 @@ namespace gfb
 namespace
 {
 using M = Mutation;
-//                                    Rem Add Spl Mrg Ant Del Acc Gho Oct Pck Sld
+//                                    Rem Add Spl Mrg Ant Del Acc Gho Oct Pck Sld Ext
+// Gates and Extend weights since algorithmVersion 3 follow the user's dataset (legato: ~77 % sounding).
 constexpr std::array<FeelProfile, kNumFeels> kProfiles {{
-    { Feel::Random,     4,  9,  6, 650, 880, 54, 150, 300, 650, 300, 700, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1 } },
-    { Feel::Sparse,     2,  6,  3, 700, 920, 52,  80, 250, 750, 300, 850, 13, 2, { 3, 1, 1, 2, 2, 2, 2, 1, 2, 2, 1 } },
-    { Feel::Balanced,   4,  9,  6, 650, 880, 54, 150, 250, 650, 300, 750, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 1 } },
-    { Feel::Busy,       8, 13, 10, 540, 840, 52, 250, 250, 650, 150, 600,  4, 3, { 2, 3, 3, 1, 1, 0, 3, 3, 1, 1, 2 } },
-    { Feel::Rolling,    6, 12,  9, 600, 860, 56, 250, 450, 850, 300, 750,  5, 2, { 1, 2, 2, 1, 1, 0, 2, 4, 1, 2, 1 } },
-    { Feel::Syncopated, 4, 10,  6, 720, 920, 54, 100, 500, 950, 150, 700,  9, 2, { 1, 1, 1, 2, 4, 2, 2, 1, 1, 2, 1 } },
-    { Feel::Stabby,     3,  9,  5, 330, 450, 52,  60, 250, 800, 150, 700, 10, 2, { 2, 2, 0, 0, 2, 2, 3, 1, 2, 1, 0 } },
+    { Feel::Random,     4,  9,  6, 900, 970, 54, 150, 300, 650, 300, 700, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 1, 1, 3 } },
+    { Feel::Sparse,     2,  6,  3, 920, 980, 52,  80, 250, 750, 300, 850, 13, 2, { 3, 1, 1, 2, 2, 2, 2, 1, 2, 2, 1, 3 } },
+    { Feel::Balanced,   4,  9,  6, 900, 970, 54, 150, 250, 650, 300, 750, 10, 2, { 2, 2, 2, 2, 2, 1, 2, 2, 1, 2, 1, 4 } },
+    { Feel::Busy,       8, 13, 10, 800, 930, 52, 250, 250, 650, 150, 600,  4, 3, { 2, 3, 3, 1, 1, 0, 3, 3, 1, 1, 2, 1 } },
+    { Feel::Rolling,    6, 12,  9, 840, 950, 56, 250, 450, 850, 300, 750,  5, 2, { 1, 2, 2, 1, 1, 0, 2, 4, 1, 2, 1, 2 } },
+    { Feel::Syncopated, 4, 10,  6, 920, 980, 54, 100, 500, 950, 150, 700,  9, 2, { 1, 1, 1, 2, 4, 2, 2, 1, 1, 2, 1, 4 } },
+    { Feel::Stabby,     3,  9,  5, 400, 520, 52,  60, 250, 800, 150, 700, 10, 2, { 2, 2, 0, 0, 2, 2, 3, 1, 2, 1, 0, 0 } },
 }};
 
 bool isOnset (const Step& s) noexcept { return s.kind == StepKind::Onset; }
@@ -59,7 +60,7 @@ std::string_view toString (Mutation m) noexcept
 {
     static constexpr std::array<std::string_view, kNumMutations> names {
         "remove_onset", "add_onset", "split_note", "merge_notes", "anticipate", "delay_entry",
-        "accent_shift", "ghost_note", "octave_punct", "pickup", "slide_toggle"
+        "accent_shift", "ghost_note", "octave_punct", "pickup", "slide_toggle", "extend"
     };
     return names[(size_t) m % kNumMutations];
 }
@@ -354,6 +355,22 @@ bool mutate (RhythmCell& cell, Mutation m, Rng& rng, const FeelProfile& fp, Fami
                 if (slides >= 1) return false; // Sub: at most one glide per bar
             }
             st[(size_t) p].slide = ! st[(size_t) p].slide;
+            break;
+        }
+        case M::Extend:
+        {
+            // tie a note into the rest that follows it (1-2 steps), keeping a gap before the next onset
+            auto cand = collect (c, [&] (int i, const Step& s) {
+                if (! isOnset (s) || s.role == Role::Ghost) return false;
+                const int e = noteEnd (c, i);
+                return e < kStepsPerBar && st[(size_t) e].kind == StepKind::Rest;
+            });
+            const int p = pickFrom (cand, rng);
+            if (p < 0) return false;
+            int e = noteEnd (c, p);
+            const int maxAdd = rng.range (1, 2);
+            for (int k = 0; k < maxAdd && e < kStepsPerBar && st[(size_t) e].kind == StepKind::Rest; ++k, ++e)
+                st[(size_t) e] = { StepKind::Hold, 1, Role::Normal, false };
             break;
         }
         case M::Count: return false;

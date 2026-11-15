@@ -78,6 +78,7 @@ std::map<std::string, std::string> settingsToMap (const GeneratorSettings& s)
         { "var", seedToString (s.varSeed) },
         { "kick", std::string (toString (s.kickContext)) },
         { "swing", std::to_string (s.swing) },
+        { "chrom", s.chromatic ? "1" : "0" },
     };
 }
 
@@ -99,6 +100,7 @@ GeneratorSettings settingsFromMap (const std::map<std::string, std::string>& kv,
     if (auto v = get ("var")) if (auto n = parseSeed (*v)) s.varSeed = *n;
     if (auto v = get ("kick")) if (auto e = kickContextFromString (*v)) s.kickContext = *e;
     if (auto v = get ("swing")) if (auto n = parseNum<int> (*v); n && (*n == kAutoSwing || (*n >= kMinSwing && *n <= kMaxSwing))) s.swing = *n;
+    if (auto v = get ("chrom")) if (*v == "0" || *v == "1") s.chromatic = *v == "1";
     return sanitise (s);
 }
 

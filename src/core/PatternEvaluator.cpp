@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <sstream>
 
+#include "core/ReferencePriors.h"
+
 namespace gfb
 {
 namespace
@@ -16,19 +18,47 @@ double inBand (double v, double lo, double hi, double falloff) noexcept
 
 struct Weights
 {
-    double density, sync, offbeat, kick, motif, range, intervals, anchor, ending, contrast, accent, repetition, chain, rest;
+    double density, sync, offbeat, kick, motif, range, intervals, anchor, ending, contrast, accent, repetition, chain, rest, groove, ivPrior, legato;
 };
+
+/** Mean user-dataset likelihood of the onset positions, relative to the most
+    likely step (0..1). Integer tables + plain arithmetic (deterministic). */
+double groovePrior (const Pattern& p) noexcept
+{
+    const auto& t = priors::kUserSteps;
+    const int mx = *std::max_element (t.begin(), t.end());
+    if (p.notes.empty() || mx <= 0) return 0.0;
+    double s = 0;
+    for (const auto& n : p.notes) s += t[(size_t) (tickToStep (n.startTick) % kStepsPerBar)];
+    return s / ((double) p.notes.size() * mx);
+}
+
+/** Mean user-dataset probability of the melodic intervals, relative to the most common non-repeat interval. */
+double intervalPrior (const Pattern& p) noexcept
+{
+    const auto& t = priors::kUserIntervals;
+    int mx = 0;
+    for (size_t i = 0; i < t.size(); ++i) if (i != 12) mx = std::max (mx, t[i]);
+    if (p.notes.size() < 2 || mx <= 0) return 1.0;
+    double s = 0;
+    for (size_t i = 1; i < p.notes.size(); ++i)
+    {
+        const int iv = std::clamp ((int) p.notes[i].midiNote - (int) p.notes[i - 1].midiNote, -12, 12);
+        s += std::min (1.0, (double) t[(size_t) (iv + 12)] / mx);
+    }
+    return s / (double) (p.notes.size() - 1);
+}
 
 Weights weightsFor (Feel f, Family fam) noexcept
 {
-    Weights w { 3, 2, 1.5, 1.5, 2, 1.5, 2, 2, 1.5, 1.5, 1, 1.5, 2, 1 };
+    Weights w { 3, 2, 1.5, 1.5, 2, 1.5, 2, 2, 1.5, 1.5, 1, 1.5, 2, 1, 3, 2, 2 };
     switch (f)
     {
-        case Feel::Sparse:     w.rest = 0.3; w.density = 3.5; w.contrast = 1; break;
-        case Feel::Busy:       w.chain = 3; w.density = 3; w.intervals = 2.5; break;
+        case Feel::Sparse:     w.rest = 0.3; w.density = 3.5; w.contrast = 1; w.groove = 2; break;
+        case Feel::Busy:       w.chain = 3; w.density = 3; w.intervals = 2.5; w.legato = 0.5; break;
         case Feel::Rolling:    w.offbeat = 2.5; w.chain = 2.5; break;
         case Feel::Syncopated: w.sync = 3.5; w.kick = 2; break;
-        case Feel::Stabby:     w.contrast = 2.5; w.chain = 3; break;
+        case Feel::Stabby:     w.contrast = 2.5; w.chain = 3; w.legato = 0; w.groove = 2; break;
         default: break;
     }
     if (fam == Family::Sub) { w.range *= 1.5; w.anchor *= 1.3; w.intervals *= 1.2; }
@@ -91,15 +121,16 @@ ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx)
     add ("offbeat", inBand (m.offbeatRatio * 1000, fp.offbeatLo, fp.offbeatHi, 400), w.offbeat);
     // 4 implied kick interaction (a prior, never a hard ban)
     double kick = 1.0;
-    if (ctx.kick == KickContext::FourOnFloor) kick = 1.0 - std::max (0.0, m.kickCollision - 0.12) * 2.0;
+    if (ctx.kick == KickContext::FourOnFloor) kick = 1.0 - std::max (0.0, m.kickCollision - 0.25) * 2.0; // user data: ~18 %
     else if (ctx.kick == KickContext::Broken) kick = inBand (m.kickCollision, 0.1, 0.45, 0.4);
     add ("kick", kick, w.kick);
     // 5 motif recurrence (structural repetition, but not a frozen loop)
     if (ctx.scoreMotif && p.bars > 1)
     {
-        double motif = inBand (m.barSimilarity, 0.5, 0.92, 0.4);
-        if (p.bars >= 4 && m.distinctBars <= 1) motif *= 0.4;     // all bars identical: no phrase
-        if (p.bars >= 4 && m.distinctBars >= p.bars) motif *= 0.8; // nothing ever repeats exactly
+        // user dataset: strongly repetitive phrases (A A A A' / A B A B: ~44 % distinct bars, similarity ~0.88)
+        double motif = inBand (m.barSimilarity, 0.6, 1.0, 0.4);
+        if (p.bars >= 4)
+            motif *= inBand ((double) m.distinctBars / p.bars, 0.25, 0.6, 0.5);
         add ("motif", motif, w.motif);
     }
     // 6 register span
@@ -135,6 +166,14 @@ ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx)
     add ("chain", inBand (m.maxChain, 0, maxChainForFeel (ctx.feel), 3), w.chain);
     // 14 rests
     add ("rest", inBand (m.longestRestSteps, 0, fp.maxRestSteps, 6), w.rest);
+
+    // 15-17: priors learned from the user's own dataset
+    add ("groove_prior", ctx.kick == KickContext::Open ? 0.5 + 0.5 * groovePrior (p) : groovePrior (p), w.groove);
+    add ("interval_prior", intervalPrior (p), w.ivPrior);
+    add ("legato", inBand (m.soundingRatio, 0.55, 0.95, 0.35), w.legato);
+    // 18: the user's own feedback (weight grows with the number of ratings)
+    if (ctx.taste != nullptr && ! ctx.taste->empty())
+        add ("taste", taste::score (p, *ctx.taste), 10.0 * taste::confidence (*ctx.taste));
 
     double num = 0, den = 0;
     for (auto& c : r.components) { num += c.value * c.weight; den += c.weight; }

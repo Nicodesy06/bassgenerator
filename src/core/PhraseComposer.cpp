@@ -8,15 +8,24 @@ namespace gfb::phrase
 {
 namespace
 {
-const std::vector<std::vector<std::string>>& templatesFor (int bars)
+// Templates and weights. Since algorithmVersion 3 the repetitive forms found in
+// the user's dataset (A B A B, A A A A', A A' A A') carry the most weight.
+struct Template { std::vector<std::string> labels; int weight; };
+
+const std::vector<Template>& templatesFor (int bars)
 {
-    static const std::vector<std::vector<std::string>> t1 { { "A*" } };
-    static const std::vector<std::vector<std::string>> t2 { { "A", "A'" }, { "A", "B" } };
-    static const std::vector<std::vector<std::string>> t4 { { "A", "A'", "B", "F" }, { "A", "B", "A'", "F" }, { "A", "A'", "A", "F" } };
-    static const std::vector<std::vector<std::string>> t8 {
-        { "A", "A'", "B", "F", "A", "A''", "B'", "F2" },
-        { "A", "A'", "A", "B", "A", "A'", "B'", "F2" },
-        { "A", "B", "A'", "F", "A", "B'", "A''", "F2" } };
+    static const std::vector<Template> t1 { { { "A*" }, 1 } };
+    static const std::vector<Template> t2 { { { "A", "A'" }, 3 }, { { "A", "B" }, 3 } };
+    static const std::vector<Template> t4 {
+        { { "A", "A'", "B", "F" }, 2 }, { { "A", "B", "A'", "F" }, 1 }, { { "A", "A'", "A", "F" }, 2 },
+        { { "A", "B", "A", "B" }, 4 }, { { "A", "A", "A", "A'" }, 3 }, { { "A", "A'", "A", "A'" }, 3 } };
+    static const std::vector<Template> t8 {
+        { { "A", "A'", "B", "F", "A", "A''", "B'", "F2" }, 1 },
+        { { "A", "A'", "A", "B", "A", "A'", "B'", "F2" }, 1 },
+        { { "A", "B", "A'", "F", "A", "B'", "A''", "F2" }, 1 },
+        { { "A", "B", "A", "B", "A", "B", "A", "B'" }, 4 },
+        { { "A", "A", "A", "A'", "A", "A", "A", "F" }, 3 },
+        { { "A", "A'", "A", "A'", "A", "A'", "A", "F2" }, 3 } };
     switch (bars)
     {
         case 1: return t1;
@@ -32,7 +41,15 @@ int templateCount (int bars) noexcept { return (int) templatesFor (bars).size();
 std::vector<std::string> phraseTemplate (int bars, int index)
 {
     const auto& t = templatesFor (bars);
-    return t[(size_t) (((index % (int) t.size()) + (int) t.size()) % (int) t.size())];
+    return t[(size_t) (((index % (int) t.size()) + (int) t.size()) % (int) t.size())].labels;
+}
+
+int pickTemplateIndex (int bars, Rng& rng)
+{
+    const auto& t = templatesFor (bars);
+    std::vector<int> w;
+    for (const auto& x : t) w.push_back (x.weight);
+    return rng.pickWeighted (w.data(), (int) w.size());
 }
 
 std::vector<int> carryPitches (const std::vector<NoteSlot>& oldSlots, const std::vector<int>& oldPitches,
@@ -97,10 +114,10 @@ Pattern renderBars (const std::vector<BarRealisation>& bars, const ArticulationP
         const auto& x = t[i];
         const int64_t nextStart = i + 1 < t.size() ? t[i + 1].start : total;
         int gate = x.lenSteps == 1 ? fp.gateShort : fp.gateLong;
-        if (ap.family == Family::Sub) gate = std::min (960, gate + 60);
+        if (ap.family == Family::Sub) gate = std::min (990, gate + 30);
         else if (x.lenSteps == 1) gate = std::max (250, gate - 40);
         int64_t dur = (int64_t) x.lenSteps * kTicksPerSixteenth * gate / 1000;
-        if (x.role == Role::Ghost) dur = std::min<int64_t> (dur, kTicksPerSixteenth / 2);
+        if (x.role == Role::Ghost) dur = std::min<int64_t> (dur, kTicksPerSixteenth * 3 / 4);
         NoteEvent e;
         e.startTick = x.start;
         e.midiNote = (uint8_t) x.midi;

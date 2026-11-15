@@ -48,8 +48,8 @@ TEST_CASE (Theory, ReferenceRegisters)
     {
         const int sub = theory::referenceRootMidi (pc, Family::Sub);
         const int acid = theory::referenceRootMidi (pc, Family::Acid);
-        CHECK (sub >= 31 && sub <= 42);
-        CHECK (acid >= 36 && acid <= 47);
+        CHECK (sub >= 36 && sub <= 47);
+        CHECK (acid >= 41 && acid <= 52);
         CHECK_EQ (sub % 12, pc);
         CHECK_EQ (acid % 12, pc);
     }

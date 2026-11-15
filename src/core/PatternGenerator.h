@@ -12,6 +12,7 @@
 
 #include "core/PatternEvaluator.h"
 #include "core/PatternTypes.h"
+#include "core/TasteProfile.h"
 
 namespace gfb
 {
@@ -20,6 +21,9 @@ struct GenerationOptions
     int styleCandidates = 12;
     int varCandidates = 16;
     bool collectLog = false;
+    /** Optional local taste profile: biases archetypes, adds learned cells and a
+        "taste" score. nullptr = factory behaviour (reproducible everywhere). */
+    const TasteProfile* taste = nullptr;
 };
 
 struct CandidateLog

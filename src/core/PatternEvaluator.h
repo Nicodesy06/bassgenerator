@@ -7,6 +7,7 @@
 
 #include "core/PatternMetrics.h"
 #include "core/RhythmGrammar.h"
+#include "core/TasteProfile.h"
 
 namespace gfb
 {
@@ -33,6 +34,7 @@ struct EvalContext
     Family family = Family::Sub;
     KickContext kick = KickContext::FourOnFloor;
     bool scoreMotif = true;        // false for single-bar core candidates
+    const TasteProfile* taste = nullptr; // optional user taste (LIKE/DISLIKE feedback)
 };
 
 ScoreResult evaluatePattern (const Pattern& p, const EvalContext& ctx);

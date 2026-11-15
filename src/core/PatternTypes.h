@@ -15,7 +15,7 @@ constexpr int kPPQ               = 960;
 constexpr int kTicksPerSixteenth = kPPQ / 4;           // 240
 constexpr int kStepsPerBar       = 16;                 // 4/4, 16th grid
 constexpr int kTicksPerBar       = kPPQ * 4;           // 3840
-constexpr uint32_t kAlgorithmVersion = 1;
+constexpr uint32_t kAlgorithmVersion = 3; // 2 was the withdrawn pack-calibrated release
 constexpr int kMaxNotesPerPattern    = 512;
 /** A note flagged slideToNext may overlap the following (different-pitch)
     note by at most this many ticks: this is how legato/glide is encoded in
@@ -51,6 +51,7 @@ struct Pattern
     int answerArchetypeId = -1;          // archetype used for B sections (or -1)
     std::string phrasePlan;              // e.g. "A A' B F"
     int swingPercent = 50;               // effective swing used for rendering
+    uint32_t tasteRevision = 0;          // taste profile revision used (0 = factory)
     double tempoBpm = 124.0;             // only used for SMF tempo meta / preview
     uint64_t hash = 0;                   // computePatternHash(*this)
 
